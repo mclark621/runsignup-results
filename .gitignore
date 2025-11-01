@@ -1,0 +1,22 @@
+# Log files
+error_log
+*.log
+
+# Database files (you may want to include these, remove if needed)
+# selfie.sqlite
+# test.db
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# PHP
+vendor/
+composer.lock
+
