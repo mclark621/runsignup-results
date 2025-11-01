@@ -75,7 +75,7 @@ $race_display_name = isset($resp['race']['name']) ? $resp['race']['name'] : '';
 $sponsor_logo = '';
 $background_color = '';
 
-// Load stored colors if not supplied (read-only)
+// Load stored colors if not supplied (read-only) (DB is stored in the same directory as the script)
 try {
     $db = new SQLite3(__DIR__ . '/selfie.sqlite');
     $db->exec('CREATE TABLE IF NOT EXISTS color_settings (
