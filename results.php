@@ -1,0 +1,861 @@
+<?php
+session_start();
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+if(isset($_SESSION['rsu_access_token']) && $_SESSION['rsu_access_token'] != '' && $_SESSION['rsu_access_token'] != null) {
+    $rsu_access_token = $_SESSION['rsu_access_token'];
+    $rsu_api_key = null;
+    $rsu_api_secret = null;
+} else {
+    $rsu_access_token = null;
+    $rsu_api_key = getenv('RSU_API_KEY');
+    $rsu_api_secret = getenv('RSU_API_SECRET');
+}
+if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    $race_id = isset($_POST['race_id']) ? $_POST['race_id'] : (isset($_SESSION['race_id']) ? $_SESSION['race_id'] : null);
+    $timeout = isset($_POST['timeout']) ? $_POST['timeout'] : (isset($_SESSION['timeout']) ? $_SESSION['timeout'] : '20');
+    if(isset($_POST['bib_num'])) {
+        $bib_num = $_POST['bib_num'];
+    } else {
+        $runner_name = $_POST['runner_name'];
+    }
+    if (!isset($_POST['bib_num']) || $_POST['bib_num'] === '') {
+        $runner_name = isset($_POST['runner_name']) ? $_POST['runner_name'] : '';
+    }
+    // If a runner name is provided, ensure bib_num is null to avoid mixed query params
+    if (isset($runner_name) && $runner_name !== '') {
+        $bib_num = null;
+    }
+    $label_color = isset($_POST['label_color']) ? $_POST['label_color'] : '#90D5FF';
+    $data_color = isset($_POST['data_color']) ? $_POST['data_color'] : '#d1842a';
+    $name_color = isset($_POST['name_color']) ? $_POST['name_color'] : '#000000';
+    if ($race_id) { $_SESSION['race_id'] = $race_id; }
+    $_SESSION['timeout'] = $timeout;
+    $rsu_api_key = null;
+    $rsu_api_secret = null;
+} else {
+    $race_id = isset($_GET['race_id']) ? $_GET['race_id'] : (isset($_SESSION['race_id']) ? $_SESSION['race_id'] : null);
+    $timeout = isset($_SESSION['timeout']) ? (string)$_SESSION['timeout'] : "20";
+    $bib_num = isset($_GET['bib_num']) ? $_GET['bib_num'] : null;
+    $label_color = isset($_GET['label_color']) ? $_GET['label_color'] : '#90D5FF';
+    $data_color = isset($_GET['data_color']) ? $_GET['data_color'] : '#d1842a';
+    $name_color = isset($_GET['name_color']) ? $_GET['name_color'] : '#000000';
+}
+// Include required files
+require('ApiConfig.php');
+require('RunSignupRestClient.class.php');
+
+// Initialize REST client
+$restClient = new RunSignupRestClient(ENDPOINT, PROTOCOL, $rsu_api_key, $rsu_api_secret, null, null, $rsu_access_token);
+$restClient->setReturnFormat('json');
+
+// Get race information
+$urlPrefix = 'race/' . $race_id;
+// If a runner name was provided, search by last_name; otherwise search by bib_num
+if (isset($runner_name) && $runner_name !== '') {
+    $getParms = [
+        'most_recent_events_only' => 'F',
+        'last_name' => $runner_name,
+        'include_division_finishers' => 'T',
+        'include_total_finishers' => 'T'
+    ];
+} else {
+    $getParms = [
+        'most_recent_events_only' => 'F',
+        'bib_num' => $bib_num,
+        'include_division_finishers' => 'T',
+        'include_total_finishers' => 'T'
+    ];
+}
+
+$resp = $restClient->callMethod($urlPrefix, 'GET', $getParms, null, true);
+$logo_url = $resp['race']['logo_url'] ?? '';
+$race_display_name = isset($resp['race']['name']) ? $resp['race']['name'] : '';
+$sponsor_logo = '';
+$background_color = '';
+
+// Load stored colors if not supplied (read-only)
+try {
+    $db = new SQLite3(__DIR__ . '/selfie.sqlite');
+    $db->exec('CREATE TABLE IF NOT EXISTS color_settings (
+        race_id TEXT PRIMARY KEY,
+        race_name TEXT,
+        label_color TEXT,
+        data_color TEXT,
+        name_color TEXT,
+        sponsor_logo TEXT,
+        updated_at TEXT
+    )');
+    // ensure sponsor_logo column exists (add only if missing)
+    try {
+        $colExists = false;
+        $ti = $db->query("PRAGMA table_info(color_settings)");
+        if ($ti) {
+            while ($row = $ti->fetchArray(SQLITE3_ASSOC)) {
+                if (isset($row['name']) && $row['name'] === 'sponsor_logo') { $colExists = true; break; }
+            }
+        }
+        if (!$colExists) {
+            $db->exec('ALTER TABLE color_settings ADD COLUMN sponsor_logo TEXT');
+        }
+    } catch (Exception $e) { /* ignore */ }
+    if ((!isset($_POST['label_color']) && !isset($_GET['label_color'])) ||
+        (!isset($_POST['data_color']) && !isset($_GET['data_color'])) ||
+        (!isset($_POST['name_color']) && !isset($_GET['name_color']))) {
+        $sel = $db->prepare('SELECT label_color, data_color, name_color, sponsor_logo, background_color FROM color_settings WHERE race_id = :race_id');
+        $sel->bindValue(':race_id', $race_id, SQLITE3_TEXT);
+        $r = $sel->execute();
+        if ($r) {
+            $row = $r->fetchArray(SQLITE3_ASSOC);
+            if ($row) {
+                if (!isset($_POST['label_color']) && !isset($_GET['label_color'])) {
+                    $label_color = $row['label_color'] ?: $label_color;
+                }
+                if (!isset($_POST['data_color']) && !isset($_GET['data_color'])) {
+                    $data_color = $row['data_color'] ?: $data_color;
+                }
+                if (!isset($_POST['name_color']) && !isset($_GET['name_color'])) {
+                    $name_color = $row['name_color'] ?: $name_color;
+                }
+                if (isset($row['sponsor_logo'])) { $sponsor_logo = $row['sponsor_logo']; }
+                if (isset($row['background_color'])) { $background_color = $row['background_color']; }
+            }
+            $r->finalize();
+        }
+        $sel = null;
+    }
+    // Always attempt to read sponsor_logo/background even if colors came from POST/GET
+    if ($sponsor_logo === '' || $background_color === '') {
+        $sel2 = $db->prepare('SELECT sponsor_logo, background_color FROM color_settings WHERE race_id = :race_id');
+        $sel2->bindValue(':race_id', $race_id, SQLITE3_TEXT);
+        $r2 = $sel2->execute();
+        if ($r2) {
+            $row2 = $r2->fetchArray(SQLITE3_ASSOC);
+            if ($row2) {
+                if (isset($row2['sponsor_logo']) && $sponsor_logo==='') { $sponsor_logo = $row2['sponsor_logo']; }
+                if (isset($row2['background_color']) && $background_color==='') { $background_color = $row2['background_color']; }
+            }
+            $r2->finalize();
+        }
+        $sel2 = null;
+    }
+    $db->close();
+} catch (Exception $e) {
+    // ignore persistence errors
+}
+
+// Initialize result arrays
+$first_name = [];
+$last_name = [];
+$chip_time = [];
+$pace = [];
+$place = [];
+$finishers = [];
+$division_finishers = [];
+$gender_finishers = [];
+$division_place = [];
+$division_placement_id = [];
+$division_id = [];
+$gender_place = [];
+$results_headers = [];
+$race_names = [];
+
+$previous_race_event_days_id = 0;
+$searchingByName = isset($runner_name) && $runner_name !== '';
+$candidates = [];
+// Process race events
+foreach ($resp['race']['events'] as $tmp) {
+    $start_time = strtotime($tmp['start_time']);
+    $right_now = time();
+    
+    // Skip future events
+    if ($start_time > $right_now) {
+        continue;
+    }
+    
+    // Break if we've moved to a different race day
+    if ($previous_race_event_days_id != 0 && 
+        $previous_race_event_days_id != $tmp['race_event_days_id'] && 
+        $start_time < $right_now) {
+        break;
+    }
+    
+    $previous_race_event_days_id = $tmp['race_event_days_id'];
+    $getParms['event_id'] = $tmp['event_id'];
+    $urlPrefixResult = 'race/' . $race_id . '/results/get-results';
+    $result = $restClient->callMethod($urlPrefixResult, 'GET', $getParms, null, true);
+    
+    // Process results if available (defensive guards)
+    $hasSets = isset($result) && isset($result['individual_results_sets']) && is_array($result['individual_results_sets']) && count($result['individual_results_sets']) > 0;
+    $hasFirstResults = $hasSets && isset($result['individual_results_sets'][0]['results']) && is_array($result['individual_results_sets'][0]['results']) && count($result['individual_results_sets'][0]['results']) > 0;
+    if ($hasSets && $hasFirstResults) {
+        
+        $race_name = $tmp['name'];
+        $race_names[$race_name] = str_replace(" ", "_", $race_name);
+        
+        // Get basic result data
+        $result_data = $result['individual_results_sets'][0]['results'][0];
+        // When searching by name, collect all matching candidates across sets
+        if ($searchingByName && $hasSets) {
+            foreach ($result['individual_results_sets'] as $set) {
+                $eventName = isset($set['event_name']) ? $set['event_name'] : $tmp['name'];
+                if (isset($set['results']) && is_array($set['results']) && !empty($set['results'])) {
+                    foreach ($set['results'] as $row) {
+                        $candidates[] = [
+                            'bib' => isset($row['bib']) ? $row['bib'] : '',
+                            'first_name' => isset($row['first_name']) ? $row['first_name'] : '',
+                            'last_name' => isset($row['last_name']) ? $row['last_name'] : '',
+                            'gender' => isset($row['gender']) ? $row['gender'] : '',
+                            'age' => isset($row['age']) ? $row['age'] : '',
+                            'city' => isset($row['city']) ? $row['city'] : '',
+                            'state' => isset($row['state']) ? $row['state'] : '',
+                            'event' => $eventName
+                        ];
+                    }
+                }
+            }
+        }
+        $first_name[$race_name] = strtoupper($result_data['first_name']);
+        $last_name[$race_name] = strtoupper($result_data['last_name']);
+        $bib_num = $result_data['bib'];
+        $chip_time[$race_name] = explode(".", $result_data['chip_time'])[0];
+        $pace[$race_name] = $result_data['pace'];
+        $gender = $result_data['gender'];
+        $place[$race_name] = $result_data['place'];
+        $finishers[$race_name] = $result['individual_results_sets'][0]['num_finishers'];
+        $division_finishers[$race_name] = $result['individual_results_sets'][0]['num_division_finishers'];
+        $results_headers[$race_name] = $result['individual_results_sets'][0]['results_headers'];
+        $gender_finishers[$race_name] = 0;
+        
+        // Process division data
+        foreach ($division_finishers[$race_name] as $did => $div_finishers) {
+            $dpi = 'division-' . $did . '-placement';
+            if ($result_data[$dpi]) {
+                $division_placement_id[$race_name] = $dpi;
+                $division_id[$race_name] = $did;
+            }
+            if (str_contains($results_headers[$race_name][$dpi], $gender) && 
+                !str_contains($results_headers[$race_name][$dpi], 'Overall')) {
+                $gender_finishers[$race_name] += $division_finishers[$race_name][$did];
+            }
+        }
+        if(isset($division_placement_id[$race_name]) && isset($result_data[$division_placement_id[$race_name]])) {
+            $division_place[$race_name] = $result_data[$division_placement_id[$race_name]];
+        }
+        $gender_place_id = array_search('Gender Place', $results_headers[$race_name]);
+        $gender_place[$race_name] = $result_data[$gender_place_id] ?? '';
+        
+    }
+}
+
+// If searching by name, decide whether to select or prompt user
+if ($searchingByName) {
+    // Deduplicate by bib
+    $uniqueByBib = [];
+    foreach ($candidates as $cand) {
+        if (!isset($uniqueByBib[$cand['bib']])) {
+            $uniqueByBib[$cand['bib']] = $cand;
+        }
+    }
+    $candidates = array_values($uniqueByBib);
+    if (count($candidates) === 1) {
+        // Auto-select the sole match
+        $bib_num = $candidates[0]['bib'];
+    } elseif (count($candidates) > 1) {
+        // Render selection UI and exit early
+        ?>
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <title>Select Participant - <?php echo htmlspecialchars($race_display_name); ?></title>
+            <link rel="stylesheet" href="assets/bootstrap/css/bootstrap.min.css">
+            <style>
+                .wrap { max-width: 960px; margin: 24px auto; background:#fff; border:1px solid #e0e0e0; border-radius:12px; box-shadow:0 8px 16px rgba(0,0,0,0.06); }
+                .header { padding:16px 18px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #eee; }
+                .muted { color:#777; font-size:0.95em; }
+                table { width:100%; border-collapse:collapse; }
+                th, td { padding:12px 10px; border-bottom:1px solid #eee; font-size:0.95em; }
+                tr:hover { background:#fafafa; }
+                .actions { padding:12px 18px; display:flex; gap:10px; justify-content:flex-end; }
+                .btn-primary-like { background:#ff8c00; color:#fff; border:none; border-radius:8px; padding:10px 14px; font-weight:600; }
+                .btn-primary-like:hover { background:#e67e00; }
+                .btn-secondary-like { background:#f0f0f0; color:#333; border:none; border-radius:8px; padding:10px 14px; font-weight:600; }
+                .btn-secondary-like:hover { background:#e6e6e6; }
+            </style>
+        </head>
+        <body>
+            <div class="wrap">
+                <div class="header">
+                    <div>
+                        <div style="font-weight:700; font-size:1.05em;">Select Participant</div>
+                        <div class="muted">Matches for last name: <strong><?php echo htmlspecialchars($runner_name); ?></strong></div>
+                    </div>
+                    <div>
+                        <button class="btn-secondary-like" onclick="history.back()">Back</button>
+                    </div>
+                </div>
+                <form id="candidateForm" action="results.php" method="POST">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Bib</th>
+                                <th>Event</th>
+                                <th>Age/Gender</th>
+                                <th>City, ST</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        <?php foreach ($candidates as $cand) { ?>
+                            <tr style="cursor:pointer;" onclick="selectBib('<?php echo htmlspecialchars($cand['bib']); ?>')">
+                                <td><?php echo htmlspecialchars(trim($cand['first_name'].' '.$cand['last_name'])); ?></td>
+                                <td><?php echo htmlspecialchars($cand['bib']); ?></td>
+                                <td><?php echo htmlspecialchars($cand['event']); ?></td>
+                                <td><?php echo htmlspecialchars(($cand['age'] ?: '-') . ' / ' . ($cand['gender'] ?: '-')); ?></td>
+                                <td><?php echo htmlspecialchars(trim(($cand['city'] ?: '').(($cand['state'] ?? '') ? ', '.$cand['state'] : ''))); ?></td>
+                            </tr>
+                        <?php } ?>
+                        </tbody>
+                    </table>
+                    <div class="actions">
+                        <input type="hidden" name="race_id" value="<?php echo htmlspecialchars($race_id); ?>">
+                        <input type="hidden" name="timeout" value="<?php echo htmlspecialchars($timeout); ?>">
+                        <input type="hidden" name="label_color" value="<?php echo htmlspecialchars($label_color); ?>">
+                        <input type="hidden" name="data_color" value="<?php echo htmlspecialchars($data_color); ?>">
+                        <input type="hidden" name="name_color" value="<?php echo htmlspecialchars($name_color); ?>">
+                        <input type="hidden" name="bib_num" id="selectedBib">
+                        <button type="button" class="btn-secondary-like" onclick="history.back()">Cancel</button>
+                    </div>
+                </form>
+                <script>
+                    function selectBib(b) {
+                        var f = document.getElementById('candidateForm');
+                        var inp = document.getElementById('selectedBib');
+                        inp.value = b;
+                        f.submit();
+                    }
+                </script>
+            </div>
+        </body>
+        </html>
+        <?php
+        exit;
+    }
+}
+
+// Age group mapping for display
+$age_groups = [
+    "M Overall" => "Male Overall",
+    "F Overall" => "Female Overall", 
+    "X Overall" => "Non-Binary Overall",
+    "F0114" => "Female 14 & Under",
+    "F1519" => "Female 15 - 19",
+    "F0119" => "Female 19 & Under",
+    "F2024" => "Female 20 - 24",
+    "F2529" => "Female 25 - 29",
+    "F3034" => "Female 30 - 34",
+    "F3539" => "Female 35 - 39",
+    "F4044" => "Female 40 - 44",
+    "F4549" => "Female 45 - 49",
+    "F5054" => "Female 50 - 54",
+    "F5559" => "Female 55 - 59",
+    "F6064" => "Female 60 - 64",
+    "F6569" => "Female 65 - 69",
+    "F2029" => "Female 20 - 29",
+    "F3039" => "Female 30 - 39",
+    "F4049" => "Female 40 - 49",
+    "F5059" => "Female 50 - 59",
+    "F6069" => "Female 60 - 69",
+    "F7099" => "Female 70 & Over",
+    "M0114" => "Male 14 & Under",
+    "M1519" => "Male 15 - 19",
+    "M0119" => "Male 19 & Under",
+    "M2024" => "Male 20 - 24",
+    "M2529" => "Male 25 - 29",
+    "M3034" => "Male 30 - 34",
+    "M3539" => "Male 35 - 39",
+    "M4044" => "Male 40 - 44",
+    "M4549" => "Male 45 - 49",
+    "M5054" => "Male 50 - 54",
+    "M5559" => "Male 55 - 59",
+    "M6064" => "Male 60 - 64",
+    "M6569" => "Male 65 - 69",
+    "M2029" => "Male 20 - 29",
+    "M3039" => "Male 30 - 39",
+    "M4049" => "Male 40 - 49",
+    "M5059" => "Male 50 - 59",
+    "M6069" => "Male 60 - 69",
+    "M7099" => "Male 70 & Over"
+];
+
+?>
+<!DOCTYPE html>
+<html data-bs-theme="light" lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta http-equiv="refresh" content="<?php echo $timeout; ?>;URL='bibsearch.php?race_id=<?php echo $race_id . '&timeout=' . $timeout . '&bib='. $bib_num; ?>'">
+    <title>Race Results - Bay City Timing & Events</title>
+    <link rel="stylesheet" href="assets/bootstrap/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Aleo&amp;display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Alfa+Slab+One&amp;display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Anek+Tamil&amp;display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Rubik+Dirt&amp;display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Rubik+Distressed&amp;display=swap">
+    <link rel="stylesheet" href="assets/style/styles.css">
+    <style>
+        /* No Results Modal (fallback styles to ensure it looks good) */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.65);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            visibility: visible;
+            opacity: 1;
+        }
+        .modal-overlay.hidden { display: none; }
+        .modal-content {
+            width: min(520px, 92vw);
+            background: #ffffff;
+            border-radius: 14px;
+            box-shadow: 0 18px 60px rgba(0,0,0,0.25);
+            padding: 28px 24px;
+            text-align: center;
+            animation: popin 200ms ease-out;
+        }
+        @keyframes popin { from { transform: scale(0.97); opacity: 0.8; } to { transform: scale(1); opacity: 1; } }
+        .no-results-icon {
+            width: 72px;
+            height: 72px;
+            margin: 0 auto 14px;
+            border-radius: 50%;
+            background: #ffe9e9;
+            display: grid;
+            place-items: center;
+            color: #cc0000;
+            font-size: 36px;
+            font-weight: bold;
+        }
+        .no-results-title {
+            font-family: 'Alfa Slab One';
+            font-size: 28px;
+            margin: 6px 0 8px;
+        }
+        .no-results-text {
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 16px;
+            color: #555;
+            line-height: 1.45;
+            margin: 0 0 18px;
+        }
+        .modal-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .btn-primary-like, .btn-secondary-like {
+            border: none;
+            border-radius: 8px;
+            padding: 12px 16px;
+            cursor: pointer;
+            font-weight: 600;
+            letter-spacing: 0.2px;
+        }
+        .btn-primary-like { background: #ff8c00; color: #fff; }
+        .btn-primary-like:hover { background: #e67e00; }
+        .btn-secondary-like { background: #f0f0f0; color: #333; }
+        .btn-secondary-like:hover { background: #e6e6e6; }
+
+        /* Body styling */
+        .results-body {
+            background-size: cover;
+            background-position: center center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+            height: 100vh;
+            margin: 0;
+        }
+        
+        /* Main content container */
+        .main-content {
+            max-width: fit-content;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
+        /* Race logo responsive styling */
+        .race-logo {
+            max-width: 300px;
+            max-height: 150px;
+            width: auto;
+            height: auto;
+            border-radius: 8px;
+            transition: transform 0.3s ease;
+        }
+        
+        .race-logo:hover {
+            transform: scale(1.05);
+        }
+        
+        /* Result display styling */
+        .result-container {
+            margin-left: 300px;
+            display: none;
+        }
+        
+        .result-name {
+            font-family: 'Alfa Slab One';
+            font-size: 50px;
+            display: inline-block;
+            line-height: 1;
+            -webkit-text-stroke-width: 2px;
+            -webkit-text-stroke-color: white;
+            color: <?php echo htmlspecialchars($name_color); ?>;
+        }
+        
+        .result-time {
+            font-family: 'Rubik Distressed';
+            font-size: 100px;
+            display: inline-block;
+            line-height: 1;
+            color: <?php echo htmlspecialchars($data_color); ?>;
+        }
+        
+        .result-label {
+            font-family: 'Alfa Slab One';
+            font-size: 30px;
+            color: <?php echo htmlspecialchars($label_color); ?>;
+            display: inline-block;
+            line-height: 1;
+        }
+        
+        .result-value {
+            font-family: 'Rubik Distressed';
+            font-size: 20px;
+            display: inline-block;
+            line-height: 1;
+            color: <?php echo htmlspecialchars($data_color); ?>;
+        }
+        
+        .finisher-label {
+            font-family: 'Rubik Distressed';
+            font-size: 30px;
+            color: <?php echo htmlspecialchars($data_color); ?>;
+            display: inline-block;
+            line-height: 1;
+        }
+        
+        /* Responsive logo sizing */
+        @media (max-width: 768px) {
+            .race-logo {
+                max-width: 250px;
+                max-height: 120px;
+            }
+            .result-container {
+                margin-left: 50px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .race-logo {
+                max-width: 200px;
+                max-height: 100px;
+            }
+            .result-container {
+                margin-left: 20px;
+            }
+            .result-name {
+                font-size: 40px;
+            }
+            .result-time {
+                font-size: 80px;
+            }
+        }
+        
+        @media (max-width: 320px) {
+            .race-logo {
+                max-width: 150px;
+                max-height: 75px;
+            }
+            .result-container {
+                margin-left: 10px;
+            }
+            .result-name {
+                font-size: 30px;
+            }
+            .result-time {
+                font-size: 60px;
+            }
+        }
+    </style>
+</head>
+<body class="results-body"<?php if (!empty($background_color)) { echo ' style="background-color: ' . htmlspecialchars($background_color) . '"'; } ?>>
+<div id="main_content" class="container main-content">
+    <?php if (!empty($logo_url) || !empty($sponsor_logo)): ?>
+    <div class="row text-center" style="margin-top: 20px; margin-bottom: 30px;">
+        <div class="col-md-12" style="display:flex; gap:16px; align-items:center; justify-content:center;">
+            <?php if (!empty($logo_url)) { ?>
+            <img src="<?php echo htmlspecialchars($logo_url); ?>" alt="Race Logo" class="race-logo">
+            <?php } ?>
+            <?php if (!empty($sponsor_logo)) { ?>
+            <img src="<?php echo htmlspecialchars($sponsor_logo); ?>" alt="Sponsor Logo" class="race-logo" style="max-height:100px;">
+            <?php } ?>
+        </div>
+    </div>
+    <?php endif; ?>
+</div>
+<?php 
+    if (empty($race_names)) {
+?>
+<div id="noResultsModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="noResultsTitle">
+    <div class="modal-content">
+        <?php if (!empty($logo_url)) { ?>
+        <div style="margin-bottom:12px;">
+            <img src="<?php echo htmlspecialchars($logo_url); ?>" alt="Race Logo" class="race-logo" style="max-height:80px;">
+        </div>
+        <?php } ?>
+        <div class="no-results-icon">!</div>
+        <div id="noResultsTitle" class="no-results-title">No Results Found</div>
+        <p class="no-results-text">We couldn’t find results for bib <strong><?php echo htmlspecialchars($bib_num ?? ''); ?></strong> for this event. Please verify the bib number or try a different search.</p>
+        <div class="modal-actions">
+            <button class="btn-primary-like" onclick="hideModal()">Back to Search</button>
+            <button class="btn-secondary-like" onclick="window.location.href='bibsearch.php?race_id=<?php echo urlencode($race_id) . '&timeout=' . urlencode($timeout); ?>'">Change Bib/Name</button>
+        </div>
+    </div>
+</div>
+<?php 
+    } else {
+    foreach ($race_names as $race_name => $race_name_id) { ?>
+    <div id="<?php echo $race_name_id ?>" class="container result-container">
+        <?php if (!empty($logo_url) || !empty($sponsor_logo)): ?>
+        <div class="row text-center" style="margin-top: 20px; margin-bottom: 20px;">
+            <div class="col-md-12" style="display:flex; gap:16px; align-items:center; justify-content:center;">
+                <?php if (!empty($logo_url)) { ?>
+                <img src="<?php echo htmlspecialchars($logo_url); ?>" alt="Race Logo" class="race-logo">
+                <?php } ?>
+                <?php if (!empty($sponsor_logo)) { ?>
+                <img src="<?php echo htmlspecialchars($sponsor_logo); ?>" alt="Sponsor Logo" class="race-logo" style="max-height:100px;">
+                <?php } ?>
+            </div>
+        </div>
+        <?php endif; ?>
+        
+        <div class="row text-center">
+            <div class="col-md-12" style="margin-top: 50px;">
+                <span class="result-name"><?php echo $first_name[$race_name] . " " . $last_name[$race_name] ?></span>
+            </div>
+        </div>
+        
+        <div class="row text-center">
+            <div class="col-md-12">
+                <span class="result-time"><?php echo $chip_time[$race_name] ?></span>
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-12 text-center" style="margin-top: 25px;">
+                <span class="finisher-label fw-bold"><?php echo $race_name; ?> FINISHER</span>
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-12 text-center" style="margin-top: 25px;">
+                <span class="result-label fw-bold">BIB NUMBER</span>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col">
+                <div class="row text-center">
+                    <div class="col-md-12">
+                        <span class="result-value"><?php echo $bib_num; ?></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-12 text-center" style="margin-top: 25px;">
+                <span class="result-label fw-bold">OVERALL RANK</span>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col">
+                <div class="row text-center">
+                    <div class="col-md-12">
+                        <span class="result-value"><?php echo $place[$race_name]; ?> of <?php echo $finishers[$race_name]; ?></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-12 text-center" style="margin-top: 25px;">
+                <span class="result-label fw-bold">GENDER RANK</span>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col">
+                <div class="row text-center">
+                    <div class="col-md-12">
+                        <span class="result-value"><?php echo $gender_place[$race_name]; ?> of <?php echo $gender_finishers[$race_name]; ?></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-12 text-center" style="margin-top: 25px;">
+                <span class="result-label fw-bold">
+                    <?php 
+                    if(isset($division_placement_id[$race_name]) && isset($results_headers[$race_name][$division_placement_id[$race_name]])) {              
+                        $agheader = array_key_exists($results_headers[$race_name][$division_placement_id[$race_name]], $age_groups)
+                            ? $age_groups[$results_headers[$race_name][$division_placement_id[$race_name]]] 
+                            : $results_headers[$race_name][$division_placement_id[$race_name]];
+                        echo $agheader;
+                    }
+                    ?>
+                </span>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col">
+                <div class="row text-center">
+                    <div class="col-md-12">
+                        <span class="result-value"><?php echo $division_place[$race_name] ?> of <?php 
+                        if(isset($division_finishers[$race_name][$division_id[$race_name]])) {
+                            echo $division_finishers[$race_name][$division_id[$race_name]];
+                        } else {
+                            echo '0';
+                        }
+                        ?></span>  
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-12 text-center" style="margin-top: 25px;">
+                <span class="result-label fw-bold">AVERAGE PACE</span>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col">
+                <div class="row text-center">
+                    <div class="col-md-12">
+                        <span class="result-value"><?php echo $pace[$race_name] ?></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <?php
+    }
+    if (count($race_names) > 1) {
+        echo '<div class="race-selector text-center" style="margin-top: 20px;">';
+        foreach ($race_names as $race_name => $race_name_id) {
+            echo '<button type="button" class="btn btn-primary me-2" onclick="switchRace(\'' . $race_name_id . '\')">' . 
+                 htmlspecialchars($race_name) . '</button>';
+        }
+        echo '</div>';
+    } else { 
+        $race_name_id = $race_names[array_key_first($race_names)];
+    ?>
+    
+    <script>
+        document.getElementById("main_content").innerHTML = document.getElementById('<?php echo $race_name_id;?>').innerHTML;
+        openFullscreen();
+    </script>
+    <?php
+    }
+    }
+    ?>
+    <script src="assets/bootstrap/js/bootstrap.min.js"></script>
+    <script>
+        const elem = document.documentElement;
+        
+        /**
+         * Switch to a different race result
+         */
+        function switchRace(raceId) {
+            const raceElement = document.getElementById(raceId);
+            if (raceElement) {
+                document.getElementById("main_content").innerHTML = raceElement.innerHTML;
+                openFullscreen();
+            }
+        }
+        
+        /**
+         * Open fullscreen mode
+         */
+        function openFullscreen() {
+            if (elem.requestFullscreen) {
+                elem.requestFullscreen();
+            } else if (elem.webkitRequestFullscreen) { /* Safari */
+                elem.webkitRequestFullscreen();
+            } else if (elem.msRequestFullscreen) { /* IE11 */
+                elem.msRequestFullscreen();
+            }
+        }
+        
+        /**
+         * Shows the 'No Results Found' modal pop-up
+         */
+        function showModal() {
+            const modal = document.getElementById('noResultsModal');
+            if (modal) {
+                modal.classList.add('visible');
+            }
+        }
+        
+        /**
+         * Hides the 'No Results Found' modal pop-up
+         */
+        function hideModal() {
+            window.location.href = "bibsearch.php?race_id=<?php echo $race_id . '&timeout=' . $timeout . '&bib='. $bib_num; ?>";
+        }
+        
+        // Hide the modal when the user clicks the dark background
+        document.addEventListener('DOMContentLoaded', function() {
+            const modal = document.getElementById('noResultsModal');
+            if (modal) {
+                modal.addEventListener('click', function(e) {
+                    if (e.target.id === 'noResultsModal') {
+                        hideModal();
+                    }
+                });
+            }
+        });
+    </script>
+
+<script>
+// Open Settings: Win/Linux Ctrl+Alt+S, macOS Option+Command+S
+(function(){
+  var lastTs = 0;
+  function handler(e){
+    // Ignore when typing in inputs/textareas or contentEditable
+    var t = e.target;
+    if (t && ((t.tagName === 'INPUT') || (t.tagName === 'TEXTAREA') || t.isContentEditable)) return;
+    var isMacCombo = e.metaKey && e.altKey && (e.code === 'KeyS');
+    var isWinCombo = e.ctrlKey && e.altKey && (e.code === 'KeyS');
+    if (!(isMacCombo || isWinCombo)) return;
+    var now = Date.now();
+    if (now - lastTs < 500 || e.repeat) return; // debounce and ignore held key
+    lastTs = now;
+    e.preventDefault();
+    var raceId = <?php echo json_encode($race_id); ?>;
+    if (!raceId) { return; }
+    window.location.href = 'settings.php?race_id=' + encodeURIComponent(raceId);
+  }
+  document.addEventListener('keydown', handler, false);
+})();
+</script>
+</body>
+
+</html>
