@@ -221,7 +221,7 @@ foreach ($resp['race']['events'] as $tmp) {
         $bib_num = $result_data['bib'];
         $chip_time[$race_name] = explode(".", $result_data['chip_time'])[0];
         $pace[$race_name] = $result_data['pace'];
-        $gender = $result_data['gender'];
+        $gender = $result_data['gender'] ?? '';
         $place[$race_name] = $result_data['place'];
         $finishers[$race_name] = $result['individual_results_sets'][0]['num_finishers'];
         $division_finishers[$race_name] = $result['individual_results_sets'][0]['num_division_finishers'];
@@ -235,7 +235,7 @@ foreach ($resp['race']['events'] as $tmp) {
                 $division_placement_id[$race_name] = $dpi;
                 $division_id[$race_name] = $did;
             }
-            if (str_contains($results_headers[$race_name][$dpi], $gender) && 
+            if ($gender && str_contains($results_headers[$race_name][$dpi], $gender) && 
                 !str_contains($results_headers[$race_name][$dpi], 'Overall')) {
                 $gender_finishers[$race_name] += $division_finishers[$race_name][$did];
             }
