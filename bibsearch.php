@@ -502,9 +502,19 @@ if ($race_id) {
         </div>
         <?php endif; ?>
         <form class="stylish-form" action="results.php" method="POST">
-            <!-- Search Type Selection (Hidden Radio Buttons) -->
-            <input type="radio" name="search_type" value="bib" <?php echo $search_type === 'bib' ? 'checked' : ''; ?> style="display:none;" id="search_type_bib">
-            <input type="radio" name="search_type" value="name" <?php echo $search_type === 'name' ? 'checked' : ''; ?> style="display:none;" id="search_type_name">
+            <!-- Search Type Selection (Radio Buttons) -->
+            <div class="search-type-container">
+                <div style="display:flex; gap:16px; align-items:center; margin-top:8px;">
+                    <label>
+                        <input type="radio" name="search_type" value="bib" <?php echo $search_type === 'bib' ? 'checked' : ''; ?>>
+                        Bib Number
+                    </label>
+                    <label>
+                        <input type="radio" name="search_type" value="name" <?php echo $search_type === 'name' ? 'checked' : ''; ?>>
+                        Runner Name
+                    </label>
+                </div>
+            </div>
 
             <!-- Bib Number Input -->
             <div id="bib-search" class="search-input-group">
