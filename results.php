@@ -78,7 +78,7 @@ $race_display_name = isset($resp['race']['name']) ? $resp['race']['name'] : '';
 $sponsor_logo = '';
 $background_color = '';
 
-// Load stored colors if not supplied (read-only) (DB is stored in the same directory as the script)
+// Load stored colors if not supplied (read-only) (DB is stored in the same directory as the script)Once Again
 try {
     $db = new SQLite3(__DIR__ . '/selfie.sqlite');
     $db->exec('CREATE TABLE IF NOT EXISTS color_settings (
@@ -321,7 +321,6 @@ if ($searchingByName) {
                         ?>
                             <tr style="cursor:pointer; background-color:<?php echo $rowColor; ?>; border-bottom:1px solid #eee;" 
                                 data-bib="<?php echo htmlspecialchars($cand['bib']); ?>"
-                                onclick="event.stopPropagation(); event.preventDefault(); selectBib('<?php echo htmlspecialchars($cand['bib']); ?>'); return false;"
                                 onmouseover="this.style.backgroundColor='<?php echo $hoverColor; ?>'"
                                 onmouseout="this.style.backgroundColor='<?php echo $rowColor; ?>'">
                                 <td style="padding:12px;"><?php echo htmlspecialchars(trim($cand['first_name'].' '.$cand['last_name'])); ?></td>
@@ -346,13 +345,34 @@ if ($searchingByName) {
                     </div>
                 </form>
                 <script>
-                    function selectBib(b) {
-                        var f = document.getElementById('candidateForm');
-                        var inp = document.getElementById('selectedBib');
-                        if (f && inp) {
-                            inp.value = b;
-                            f.submit();
-                        }
+                    // Event delegation - attach to table, works on any cell click
+                    var candidateTable = document.getElementById('candidateTable');
+                    if (candidateTable) {
+                        candidateTable.addEventListener('click', function(e) {
+                            // Don't handle clicks on thead or buttons
+                            if (e.target.tagName === 'TH' || e.target.tagName === 'BUTTON') {
+                                return;
+                            }
+                            
+                            // Find the parent TR element
+                            var target = e.target;
+                            while (target && target.tagName !== 'TR') {
+                                target = target.parentElement;
+                            }
+                            
+                            // Check if it's a data row with bib number
+                            if (target && target.hasAttribute('data-bib')) {
+                                var bib = target.getAttribute('data-bib');
+                                if (bib) {
+                                    var f = document.getElementById('candidateForm');
+                                    var inp = document.getElementById('selectedBib');
+                                    if (f && inp) {
+                                        inp.value = bib;
+                                        f.submit();
+                                    }
+                                }
+                            }
+                        }, true); // Use capture phase to ensure it fires
                     }
                 </script>
             </div>
