@@ -301,24 +301,33 @@ if ($searchingByName) {
                     </div>
                 </div>
                 <form id="candidateForm" action="results.php" method="POST">
-                    <table>
+                    <table id="candidateTable" style="width:100%; border-collapse:collapse; margin-top:20px;">
                         <thead>
-                            <tr>
-                                <th>Name</th>
-                                <th>Bib</th>
-                                <th>Event</th>
-                                <th>Age/Gender</th>
-                                <th>City, ST</th>
+                            <tr style="background-color:#f0f0f0; border-bottom:2px solid #ddd;">
+                                <th style="padding:12px; text-align:left;">Name</th>
+                                <th style="padding:12px; text-align:left;">Bib</th>
+                                <th style="padding:12px; text-align:left;">Event</th>
+                                <th style="padding:12px; text-align:left;">Age/Gender</th>
+                                <th style="padding:12px; text-align:left;">City, ST</th>
                             </tr>
                         </thead>
                         <tbody>
-                        <?php foreach ($candidates as $cand) { ?>
-                            <tr style="cursor:pointer;" onclick="selectBib('<?php echo htmlspecialchars($cand['bib']); ?>')">
-                                <td><?php echo htmlspecialchars(trim($cand['first_name'].' '.$cand['last_name'])); ?></td>
-                                <td><?php echo htmlspecialchars($cand['bib']); ?></td>
-                                <td><?php echo htmlspecialchars($cand['event']); ?></td>
-                                <td><?php echo htmlspecialchars(($cand['age'] ?: '-') . ' / ' . ($cand['gender'] ?: '-')); ?></td>
-                                <td><?php echo htmlspecialchars(trim(($cand['city'] ?: '').(($cand['state'] ?? '') ? ', '.$cand['state'] : ''))); ?></td>
+                        <?php 
+                        $rowIndex = 0;
+                        foreach ($candidates as $cand) { 
+                            $rowIndex++;
+                            $rowColor = ($rowIndex % 2 === 0) ? '#f9f9f9' : '#ffffff';
+                            $hoverColor = '#e8f4f8';
+                        ?>
+                            <tr style="cursor:pointer; background-color:<?php echo $rowColor; ?>; border-bottom:1px solid #eee;" 
+                                onclick="selectBib('<?php echo htmlspecialchars($cand['bib']); ?>')"
+                                onmouseover="this.style.backgroundColor='<?php echo $hoverColor; ?>'"
+                                onmouseout="this.style.backgroundColor='<?php echo $rowColor; ?>'">
+                                <td style="padding:12px;"><?php echo htmlspecialchars(trim($cand['first_name'].' '.$cand['last_name'])); ?></td>
+                                <td style="padding:12px;"><?php echo htmlspecialchars($cand['bib']); ?></td>
+                                <td style="padding:12px;"><?php echo htmlspecialchars($cand['event']); ?></td>
+                                <td style="padding:12px;"><?php echo htmlspecialchars(($cand['age'] ?: '-') . ' / ' . ($cand['gender'] ?: '-')); ?></td>
+                                <td style="padding:12px;"><?php echo htmlspecialchars(trim(($cand['city'] ?: '').(($cand['state'] ?? '') ? ', '.$cand['state'] : ''))); ?></td>
                             </tr>
                         <?php } ?>
                         </tbody>
@@ -885,6 +894,11 @@ $age_groups = [
             // Add click handler to entire results screen to return to search
             document.body.addEventListener('click', function(e) {
                 const target = e.target;
+                
+                // Don't redirect if clicking on the candidate selection table
+                if (target.closest('#candidateTable') || target.closest('#candidateForm')) {
+                    return; // Let onclick handler execute
+                }
                 
                 // Check if target or any parent has onclick handler (like selectBib, switchRace)
                 const elementWithOnclick = target.closest('[onclick]');
