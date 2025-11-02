@@ -401,13 +401,20 @@ $age_groups = [
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta http-equiv="refresh" content="<?php echo $timeout; ?>;URL='bibsearch.php?race_id=<?php 
-        $session_search_type = isset($_SESSION['search_type']) ? $_SESSION['search_type'] : 'bib';
-        $session_runner_name = isset($_SESSION['runner_name']) && $_SESSION['runner_name'] !== '' ? $_SESSION['runner_name'] : '';
-        $session_bib_num = isset($_SESSION['bib_num']) && $_SESSION['bib_num'] !== '' ? $_SESSION['bib_num'] : '';
-        if ($session_search_type === 'name' && $session_runner_name !== '') {
-            echo $race_id . '&timeout=' . $timeout . '&search_type=name&runner_name=' . urlencode($session_runner_name);
+        // Use current POST value if available, otherwise check session
+        $current_search_type = isset($_POST['search_type']) ? $_POST['search_type'] : (isset($_SESSION['search_type']) ? $_SESSION['search_type'] : 'bib');
+        $current_runner_name = isset($_POST['runner_name']) && $_POST['runner_name'] !== '' ? $_POST['runner_name'] : (isset($_SESSION['runner_name']) && $_SESSION['runner_name'] !== '' ? $_SESSION['runner_name'] : '');
+        $current_bib_num = isset($_POST['bib_num']) && $_POST['bib_num'] !== '' ? $_POST['bib_num'] : (isset($_SESSION['bib_num']) && $_SESSION['bib_num'] !== '' ? $_SESSION['bib_num'] : '');
+        
+        // Fallback: if search_type is not 'name' but we have runner_name, assume it was a name search
+        if ($current_search_type !== 'name' && $current_runner_name !== '') {
+            $current_search_type = 'name';
+        }
+        
+        if ($current_search_type === 'name' && $current_runner_name !== '') {
+            echo urlencode($race_id) . '&timeout=' . urlencode($timeout) . '&search_type=name&runner_name=' . urlencode($current_runner_name);
         } else {
-            echo $race_id . '&timeout=' . $timeout . '&search_type=bib&bib_num=' . urlencode($session_bib_num);
+            echo urlencode($race_id) . '&timeout=' . urlencode($timeout) . '&search_type=bib&bib_num=' . urlencode($current_bib_num);
         }
     ?>'">
     <title>Race Results - Bay City Timing & Events</title>
@@ -837,13 +844,19 @@ $age_groups = [
          */
         function hideModal() {
             <?php
-            $session_search_type_js = isset($_SESSION['search_type']) ? $_SESSION['search_type'] : 'bib';
-            $session_runner_name_js = isset($_SESSION['runner_name']) && $_SESSION['runner_name'] !== '' ? $_SESSION['runner_name'] : '';
-            $session_bib_num_js = isset($_SESSION['bib_num']) && $_SESSION['bib_num'] !== '' ? $_SESSION['bib_num'] : '';
-            if ($session_search_type_js === 'name' && $session_runner_name_js !== '') {
-                $redirect_url = $race_id . '&timeout=' . $timeout . '&search_type=name&runner_name=' . urlencode($session_runner_name_js);
+            $current_search_type_js = isset($_SESSION['search_type']) ? $_SESSION['search_type'] : 'bib';
+            $current_runner_name_js = isset($_SESSION['runner_name']) && $_SESSION['runner_name'] !== '' ? $_SESSION['runner_name'] : '';
+            $current_bib_num_js = isset($_SESSION['bib_num']) && $_SESSION['bib_num'] !== '' ? $_SESSION['bib_num'] : '';
+            
+            // Fallback: if search_type is not 'name' but we have runner_name, assume it was a name search
+            if ($current_search_type_js !== 'name' && $current_runner_name_js !== '') {
+                $current_search_type_js = 'name';
+            }
+            
+            if ($current_search_type_js === 'name' && $current_runner_name_js !== '') {
+                $redirect_url = urlencode($race_id) . '&timeout=' . urlencode($timeout) . '&search_type=name&runner_name=' . urlencode($current_runner_name_js);
             } else {
-                $redirect_url = $race_id . '&timeout=' . $timeout . '&search_type=bib&bib_num=' . urlencode($session_bib_num_js);
+                $redirect_url = urlencode($race_id) . '&timeout=' . urlencode($timeout) . '&search_type=bib&bib_num=' . urlencode($current_bib_num_js);
             }
             ?>
             window.location.href = "bibsearch.php?race_id=<?php echo $redirect_url; ?>";
