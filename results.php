@@ -15,17 +15,18 @@ if(isset($_SESSION['rsu_access_token']) && $_SESSION['rsu_access_token'] != '' &
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $race_id = isset($_POST['race_id']) ? $_POST['race_id'] : (isset($_SESSION['race_id']) ? $_SESSION['race_id'] : null);
     $timeout = isset($_POST['timeout']) ? $_POST['timeout'] : (isset($_SESSION['timeout']) ? $_SESSION['timeout'] : '20');
-    if(isset($_POST['bib_num'])) {
-        $bib_num = $_POST['bib_num'];
-    } else {
-        $runner_name = $_POST['runner_name'];
-    }
-    if (!isset($_POST['bib_num']) || $_POST['bib_num'] === '') {
-        $runner_name = isset($_POST['runner_name']) ? $_POST['runner_name'] : '';
-    }
+    $bib_num = isset($_POST['bib_num']) && $_POST['bib_num'] !== '' ? $_POST['bib_num'] : null;
+    $runner_name = isset($_POST['runner_name']) && $_POST['runner_name'] !== '' ? $_POST['runner_name'] : '';
     // If a runner name is provided, ensure bib_num is null to avoid mixed query params
     if (isset($runner_name) && $runner_name !== '') {
         $bib_num = null;
+        $_SESSION['runner_name'] = $runner_name;
+        unset($_SESSION['bib_num']);
+    } else {
+        if (isset($bib_num) && $bib_num !== null && $bib_num !== '') {
+            $_SESSION['bib_num'] = $bib_num;
+            unset($_SESSION['runner_name']);
+        }
     }
     $label_color = isset($_POST['label_color']) ? $_POST['label_color'] : '#90D5FF';
     $data_color = isset($_POST['data_color']) ? $_POST['data_color'] : '#d1842a';
@@ -37,7 +38,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 } else {
     $race_id = isset($_GET['race_id']) ? $_GET['race_id'] : (isset($_SESSION['race_id']) ? $_SESSION['race_id'] : null);
     $timeout = isset($_SESSION['timeout']) ? (string)$_SESSION['timeout'] : "20";
-    $bib_num = isset($_GET['bib_num']) ? $_GET['bib_num'] : null;
+    $bib_num = isset($_GET['bib_num']) ? $_GET['bib_num'] : (isset($_SESSION['bib_num']) ? $_SESSION['bib_num'] : null);
+    $runner_name = isset($_GET['runner_name']) ? $_GET['runner_name'] : (isset($_SESSION['runner_name']) ? $_SESSION['runner_name'] : '');
     $label_color = isset($_GET['label_color']) ? $_GET['label_color'] : '#90D5FF';
     $data_color = isset($_GET['data_color']) ? $_GET['data_color'] : '#d1842a';
     $name_color = isset($_GET['name_color']) ? $_GET['name_color'] : '#000000';
@@ -397,7 +399,7 @@ $age_groups = [
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta http-equiv="refresh" content="<?php echo $timeout; ?>;URL='bibsearch.php?race_id=<?php echo $race_id . '&timeout=' . $timeout . '&bib='. $bib_num; ?>'">
+    <meta http-equiv="refresh" content="<?php echo $timeout; ?>;URL='bibsearch.php?race_id=<?php echo $race_id . '&timeout=' . $timeout . (isset($runner_name) && $runner_name !== '' ? '&search_type=name&runner_name=' . urlencode($runner_name) : '&search_type=bib&bib_num=' . urlencode($bib_num ?? '')); ?>'">
     <title>Race Results - Bay City Timing & Events</title>
     <link rel="stylesheet" href="assets/bootstrap/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Aleo&amp;display=swap">
@@ -728,8 +730,14 @@ $age_groups = [
             <div class="col">
                 <div class="row text-center">
                     <div class="col-md-12">
-                        <span class="result-value"><?php echo $division_place[$race_name] ?> of <?php 
-                        if(isset($division_finishers[$race_name][$division_id[$race_name]])) {
+                        <span class="result-value"><?php 
+                        if(isset($division_place[$race_name])) {
+                            echo $division_place[$race_name];
+                        } else {
+                            echo '0';
+                        }
+                        ?> of <?php 
+                        if(isset($division_id[$race_name]) && isset($division_finishers[$race_name][$division_id[$race_name]])) {
                             echo $division_finishers[$race_name][$division_id[$race_name]];
                         } else {
                             echo '0';
@@ -818,7 +826,7 @@ $age_groups = [
          * Hides the 'No Results Found' modal pop-up
          */
         function hideModal() {
-            window.location.href = "bibsearch.php?race_id=<?php echo $race_id . '&timeout=' . $timeout . '&bib='. $bib_num; ?>";
+            window.location.href = "bibsearch.php?race_id=<?php echo $race_id . '&timeout=' . $timeout . (isset($runner_name) && $runner_name !== '' ? '&search_type=name&runner_name=' . urlencode($runner_name) : '&search_type=bib&bib_num=' . urlencode($bib_num ?? '')); ?>";
         }
         
         // Hide the modal when the user clicks the dark background
