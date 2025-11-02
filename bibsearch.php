@@ -378,10 +378,11 @@ if ($race_id) {
             }
             .form-container {
                 max-width: 100%;
-                max-height: 100vh;
+                max-height: none;
                 margin: 0 auto;
                 padding: 12px 15px;
                 border-radius: 8px;
+                overflow-y: visible;
             }
             .logo {
                 margin-bottom: 8px;
@@ -428,10 +429,11 @@ if ($race_id) {
                 padding: 0;
             }
             .form-container {
-                max-height: 100vh;
+                max-height: none;
                 margin: 0 auto;
                 padding: 10px 12px;
                 border-radius: 6px;
+                overflow-y: visible;
             }
             .logo {
                 margin-bottom: 6px;
@@ -473,9 +475,10 @@ if ($race_id) {
         
         @media (max-width: 767px) and (orientation: landscape) {
             .form-container {
-                max-height: 100vh;
+                max-height: none;
                 margin: 0 auto;
                 padding: 8px 12px;
+                overflow-y: visible;
             }
             .logo {
                 margin-bottom: 4px;
