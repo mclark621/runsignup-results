@@ -321,7 +321,7 @@ if ($searchingByName) {
                             $bib = htmlspecialchars($cand['bib']);
                         ?>
                             <tr style="cursor:pointer; background-color:<?php echo $rowColor; ?>; border-bottom:1px solid #eee;" 
-                                onclick="selectCandidate('<?php echo $bib; ?>'); return false;"
+                                data-bib="<?php echo $bib; ?>"
                                 onmouseover="this.style.backgroundColor='<?php echo $hoverColor; ?>';"
                                 onmouseout="this.style.backgroundColor='<?php echo $rowColor; ?>';">
                                 <td style="padding:12px;"><?php echo htmlspecialchars(trim($cand['first_name'].' '.$cand['last_name'])); ?></td>
@@ -346,14 +346,40 @@ if ($searchingByName) {
                     </div>
                 </form>
                 <script>
-                    function selectCandidate(bib) {
-                        var form = document.getElementById('candidateForm');
-                        var input = document.getElementById('selectedBib');
-                        if (form && input) {
-                            input.value = bib;
-                            form.submit();
+                    // Event delegation - runs immediately since script is after table
+                    (function() {
+                        var table = document.getElementById('candidateTable');
+                        if (table) {
+                            table.addEventListener('click', function(e) {
+                                // Don't handle clicks on buttons or headers
+                                if (e.target.tagName === 'BUTTON' || e.target.tagName === 'TH') {
+                                    return;
+                                }
+                                
+                                // Find the parent TR element by walking up the DOM
+                                var target = e.target;
+                                var tr = null;
+                                while (target && target !== table) {
+                                    if (target.tagName === 'TR') {
+                                        tr = target;
+                                        break;
+                                    }
+                                    target = target.parentElement;
+                                }
+                                
+                                // Check if this row has a bib number (skip header rows)
+                                if (tr && tr.getAttribute('data-bib')) {
+                                    var bib = tr.getAttribute('data-bib');
+                                    var form = document.getElementById('candidateForm');
+                                    var input = document.getElementById('selectedBib');
+                                    if (form && input) {
+                                        input.value = bib;
+                                        form.submit();
+                                    }
+                                }
+                            });
                         }
-                    }
+                    })();
                 </script>
             </div>
         </body>
