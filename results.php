@@ -321,7 +321,7 @@ if ($searchingByName) {
                             $bib = htmlspecialchars($cand['bib']);
                         ?>
                             <tr style="cursor:pointer; background-color:<?php echo $rowColor; ?>; border-bottom:1px solid #eee;" 
-                                onclick="document.getElementById('selectedBib').value='<?php echo $bib; ?>'; document.getElementById('candidateForm').submit();"
+                                onclick="selectCandidate('<?php echo $bib; ?>'); return false;"
                                 onmouseover="this.style.backgroundColor='<?php echo $hoverColor; ?>';"
                                 onmouseout="this.style.backgroundColor='<?php echo $rowColor; ?>';">
                                 <td style="padding:12px;"><?php echo htmlspecialchars(trim($cand['first_name'].' '.$cand['last_name'])); ?></td>
@@ -345,6 +345,16 @@ if ($searchingByName) {
                         <button type="button" class="btn-secondary-like" onclick="history.back()">Cancel</button>
                     </div>
                 </form>
+                <script>
+                    function selectCandidate(bib) {
+                        var form = document.getElementById('candidateForm');
+                        var input = document.getElementById('selectedBib');
+                        if (form && input) {
+                            input.value = bib;
+                            form.submit();
+                        }
+                    }
+                </script>
             </div>
         </body>
         </html>
