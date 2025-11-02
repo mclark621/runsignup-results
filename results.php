@@ -382,8 +382,22 @@ if ($searchingByName) {
                                 console.log('TR has data-bib:', bib);
                                 if (bib) {
                                     console.log('Setting bib value:', bib);
+                                    // Set the bib number
                                     input.value = bib;
-                                    console.log('Submitting form...');
+                                    
+                                    // Clear runner_name and set search_type to 'bib' for bib search
+                                    var runnerNameInput = form.querySelector('input[name="runner_name"]');
+                                    var searchTypeInput = form.querySelector('input[name="search_type"]');
+                                    if (runnerNameInput) {
+                                        runnerNameInput.value = '';
+                                        console.log('Cleared runner_name');
+                                    }
+                                    if (searchTypeInput) {
+                                        searchTypeInput.value = 'bib';
+                                        console.log('Set search_type to bib');
+                                    }
+                                    
+                                    console.log('Submitting form with bib:', bib);
                                     form.submit();
                                 } else {
                                     console.log('No data-bib attribute found');
