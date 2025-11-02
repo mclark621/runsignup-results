@@ -346,40 +346,56 @@ if ($searchingByName) {
                     </div>
                 </form>
                 <script>
-                    // Event delegation - runs immediately since script is after table
-                    (function() {
-                        var table = document.getElementById('candidateTable');
-                        if (table) {
-                            table.addEventListener('click', function(e) {
-                                // Don't handle clicks on buttons or headers
-                                if (e.target.tagName === 'BUTTON' || e.target.tagName === 'TH') {
-                                    return;
+                    console.log('Script loaded, looking for table...');
+                    var table = document.getElementById('candidateTable');
+                    console.log('Table found:', table);
+                    var form = document.getElementById('candidateForm');
+                    var input = document.getElementById('selectedBib');
+                    console.log('Form found:', form, 'Input found:', input);
+                    
+                    if (table && form && input) {
+                        console.log('Adding click listener to table');
+                        table.addEventListener('click', function(e) {
+                            console.log('Table clicked!', e.target);
+                            
+                            // Don't handle clicks on buttons or headers
+                            if (e.target.tagName === 'BUTTON' || e.target.tagName === 'TH') {
+                                console.log('Click on button or header, ignoring');
+                                return;
+                            }
+                            
+                            // Find the parent TR element by walking up the DOM
+                            var target = e.target;
+                            var tr = null;
+                            while (target && target !== table) {
+                                if (target.tagName === 'TR') {
+                                    tr = target;
+                                    console.log('Found TR:', tr);
+                                    break;
                                 }
-                                
-                                // Find the parent TR element by walking up the DOM
-                                var target = e.target;
-                                var tr = null;
-                                while (target && target !== table) {
-                                    if (target.tagName === 'TR') {
-                                        tr = target;
-                                        break;
-                                    }
-                                    target = target.parentElement;
+                                target = target.parentElement;
+                            }
+                            
+                            // Check if this row has a bib number (skip header rows)
+                            if (tr) {
+                                var bib = tr.getAttribute('data-bib');
+                                console.log('TR has data-bib:', bib);
+                                if (bib) {
+                                    console.log('Setting bib value:', bib);
+                                    input.value = bib;
+                                    console.log('Submitting form...');
+                                    form.submit();
+                                } else {
+                                    console.log('No data-bib attribute found');
                                 }
-                                
-                                // Check if this row has a bib number (skip header rows)
-                                if (tr && tr.getAttribute('data-bib')) {
-                                    var bib = tr.getAttribute('data-bib');
-                                    var form = document.getElementById('candidateForm');
-                                    var input = document.getElementById('selectedBib');
-                                    if (form && input) {
-                                        input.value = bib;
-                                        form.submit();
-                                    }
-                                }
-                            });
-                        }
-                    })();
+                            } else {
+                                console.log('No TR found');
+                            }
+                        });
+                        console.log('Click listener added successfully');
+                    } else {
+                        console.error('Missing elements:', {table: !!table, form: !!form, input: !!input});
+                    }
                 </script>
             </div>
         </body>
