@@ -840,9 +840,9 @@ $age_groups = [
         }
         
         /**
-         * Hides the 'No Results Found' modal pop-up
+         * Returns the URL to redirect to search page, preserving search type
          */
-        function hideModal() {
+        function getSearchRedirectUrl() {
             <?php
             $current_search_type_js = isset($_SESSION['search_type']) ? $_SESSION['search_type'] : 'bib';
             $current_runner_name_js = isset($_SESSION['runner_name']) && $_SESSION['runner_name'] !== '' ? $_SESSION['runner_name'] : '';
@@ -859,7 +859,14 @@ $age_groups = [
                 $redirect_url = urlencode($race_id) . '&timeout=' . urlencode($timeout) . '&search_type=bib&bib_num=' . urlencode($current_bib_num_js);
             }
             ?>
-            window.location.href = "bibsearch.php?race_id=<?php echo $redirect_url; ?>";
+            return "bibsearch.php?race_id=<?php echo $redirect_url; ?>";
+        }
+        
+        /**
+         * Hides the 'No Results Found' modal pop-up
+         */
+        function hideModal() {
+            window.location.href = getSearchRedirectUrl();
         }
         
         // Hide the modal when the user clicks the dark background
@@ -872,6 +879,36 @@ $age_groups = [
                     }
                 });
             }
+            
+            // Add click handler to entire results screen to return to search
+            document.body.addEventListener('click', function(e) {
+                const target = e.target;
+                
+                // Check if target or any parent has onclick handler (like selectBib, switchRace)
+                const elementWithOnclick = target.closest('[onclick]');
+                if (elementWithOnclick) {
+                    return; // Let onclick handler execute
+                }
+                
+                // Check if it's an interactive element or within one
+                const isInteractive = target.tagName === 'BUTTON' || 
+                                     target.tagName === 'A' || 
+                                     target.tagName === 'INPUT' || 
+                                     target.tagName === 'TEXTAREA' ||
+                                     target.tagName === 'SELECT' ||
+                                     target.closest('button') ||
+                                     target.closest('a') ||
+                                     target.closest('input') ||
+                                     target.closest('textarea') ||
+                                     target.closest('select') ||
+                                     target.closest('.modal');
+                
+                // If not interactive and no onclick, redirect to search
+                if (!isInteractive) {
+                    e.preventDefault();
+                    window.location.href = getSearchRedirectUrl();
+                }
+            });
         });
     </script>
 
