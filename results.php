@@ -329,6 +329,8 @@ if ($searchingByName) {
                         <input type="hidden" name="label_color" value="<?php echo htmlspecialchars($label_color); ?>">
                         <input type="hidden" name="data_color" value="<?php echo htmlspecialchars($data_color); ?>">
                         <input type="hidden" name="name_color" value="<?php echo htmlspecialchars($name_color); ?>">
+                        <input type="hidden" name="search_type" value="<?php echo htmlspecialchars(isset($_SESSION['search_type']) ? $_SESSION['search_type'] : ($searchingByName ? 'name' : 'bib')); ?>">
+                        <input type="hidden" name="runner_name" value="<?php echo htmlspecialchars($runner_name ?? ''); ?>">
                         <input type="hidden" name="bib_num" id="selectedBib">
                         <button type="button" class="btn-secondary-like" onclick="history.back()">Cancel</button>
                     </div>
