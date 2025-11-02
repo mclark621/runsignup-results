@@ -321,6 +321,7 @@ if ($searchingByName) {
                         ?>
                             <tr style="cursor:pointer; background-color:<?php echo $rowColor; ?>; border-bottom:1px solid #eee;" 
                                 data-bib="<?php echo htmlspecialchars($cand['bib']); ?>"
+                                onclick="event.stopPropagation(); event.preventDefault(); selectBib('<?php echo htmlspecialchars($cand['bib']); ?>'); return false;"
                                 onmouseover="this.style.backgroundColor='<?php echo $hoverColor; ?>'"
                                 onmouseout="this.style.backgroundColor='<?php echo $rowColor; ?>'">
                                 <td style="padding:12px;"><?php echo htmlspecialchars(trim($cand['first_name'].' '.$cand['last_name'])); ?></td>
@@ -348,24 +349,11 @@ if ($searchingByName) {
                     function selectBib(b) {
                         var f = document.getElementById('candidateForm');
                         var inp = document.getElementById('selectedBib');
-                        inp.value = b;
-                        f.submit();
-                    }
-                    
-                    // Add click listeners to table rows using data-bib attribute
-                    document.addEventListener('DOMContentLoaded', function() {
-                        var candidateTable = document.getElementById('candidateTable');
-                        if (candidateTable) {
-                            var rows = candidateTable.querySelectorAll('tbody tr[data-bib]');
-                            rows.forEach(function(row) {
-                                row.addEventListener('click', function(e) {
-                                    e.stopPropagation(); // Prevent bubbling to body handler
-                                    var bib = this.getAttribute('data-bib');
-                                    selectBib(bib);
-                                });
-                            });
+                        if (f && inp) {
+                            inp.value = b;
+                            f.submit();
                         }
-                    });
+                    }
                 </script>
             </div>
         </body>
