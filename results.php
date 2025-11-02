@@ -18,16 +18,30 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $search_type = isset($_POST['search_type']) ? $_POST['search_type'] : 'bib';
     $bib_num = isset($_POST['bib_num']) && $_POST['bib_num'] !== '' ? $_POST['bib_num'] : null;
     $runner_name = isset($_POST['runner_name']) && $_POST['runner_name'] !== '' ? $_POST['runner_name'] : '';
+    
+    // Check if this is a bib selection from multi-result (has bib_num but no runner_name indicates selection from name search results)
+    $isBibSelectionFromMultiResult = ($bib_num !== null && $runner_name === '' && isset($_SESSION['search_type']) && $_SESSION['search_type'] === 'name');
+    
     // Store search type and values in session
-    $_SESSION['search_type'] = $search_type;
+    // BUT: if selecting a bib from multi-result, preserve the original name search type in session
     if ($search_type === 'name' && $runner_name !== '') {
+        // New name search - update session
+        $_SESSION['search_type'] = $search_type;
         $bib_num = null;
         $_SESSION['runner_name'] = $runner_name;
         unset($_SESSION['bib_num']);
-    } else if ($search_type === 'bib' && $bib_num !== null && $bib_num !== '') {
+    } else if ($search_type === 'bib' && $bib_num !== null && $bib_num !== '' && !$isBibSelectionFromMultiResult) {
+        // New bib search - update session
+        $_SESSION['search_type'] = $search_type;
         $runner_name = '';
         $_SESSION['bib_num'] = $bib_num;
         unset($_SESSION['runner_name']);
+    } else if ($isBibSelectionFromMultiResult) {
+        // Bib selected from multi-result - use bib for this search but DON'T update session search_type
+        // Keep the session search_type as 'name' so redirect goes back to name search
+        $runner_name = '';
+        // Don't update $_SESSION['search_type'] - keep it as 'name'
+        // Don't clear $_SESSION['runner_name'] - keep it for redirect
     }
     $label_color = isset($_POST['label_color']) ? $_POST['label_color'] : '#90D5FF';
     $data_color = isset($_POST['data_color']) ? $_POST['data_color'] : '#d1842a';
@@ -385,17 +399,14 @@ if ($searchingByName) {
                                     // Set the bib number
                                     input.value = bib;
                                     
-                                    // Clear runner_name and set search_type to 'bib' for bib search
+                                    // Clear runner_name for this submission, but DON'T change search_type
+                                    // We want to keep the original search_type='name' in session for redirect
                                     var runnerNameInput = form.querySelector('input[name="runner_name"]');
-                                    var searchTypeInput = form.querySelector('input[name="search_type"]');
                                     if (runnerNameInput) {
                                         runnerNameInput.value = '';
-                                        console.log('Cleared runner_name');
+                                        console.log('Cleared runner_name for this submission');
                                     }
-                                    if (searchTypeInput) {
-                                        searchTypeInput.value = 'bib';
-                                        console.log('Set search_type to bib');
-                                    }
+                                    // Don't change search_type - keep it as 'name' so redirect goes back to name search
                                     
                                     console.log('Submitting form with bib:', bib);
                                     form.submit();
