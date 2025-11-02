@@ -309,7 +309,6 @@ if ($searchingByName) {
                                 <th style="padding:12px; text-align:left;">Event</th>
                                 <th style="padding:12px; text-align:left;">Age/Gender</th>
                                 <th style="padding:12px; text-align:left;">City, ST</th>
-                                <th style="padding:12px; text-align:center; width:80px;">Select</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -319,23 +318,17 @@ if ($searchingByName) {
                             $rowIndex++;
                             $rowColor = ($rowIndex % 2 === 0) ? '#f9f9f9' : '#ffffff';
                             $hoverColor = '#e8f4f8';
+                            $bib = htmlspecialchars($cand['bib']);
                         ?>
-                            <tr style="background-color:<?php echo $rowColor; ?>; border-bottom:1px solid #eee;" 
-                                onmouseover="var btn = this.querySelector('.row-submit-btn'); if(btn) btn.style.opacity='1'; this.style.backgroundColor='<?php echo $hoverColor; ?>';"
-                                onmouseout="var btn = this.querySelector('.row-submit-btn'); if(btn) btn.style.opacity='0.3'; this.style.backgroundColor='<?php echo $rowColor; ?>';">
+                            <tr style="cursor:pointer; background-color:<?php echo $rowColor; ?>; border-bottom:1px solid #eee;" 
+                                onclick="document.getElementById('selectedBib').value='<?php echo $bib; ?>'; document.getElementById('candidateForm').submit();"
+                                onmouseover="this.style.backgroundColor='<?php echo $hoverColor; ?>';"
+                                onmouseout="this.style.backgroundColor='<?php echo $rowColor; ?>';">
                                 <td style="padding:12px;"><?php echo htmlspecialchars(trim($cand['first_name'].' '.$cand['last_name'])); ?></td>
                                 <td style="padding:12px;"><?php echo htmlspecialchars($cand['bib']); ?></td>
                                 <td style="padding:12px;"><?php echo htmlspecialchars($cand['event']); ?></td>
                                 <td style="padding:12px;"><?php echo htmlspecialchars(($cand['age'] ?: '-') . ' / ' . ($cand['gender'] ?: '-')); ?></td>
                                 <td style="padding:12px;"><?php echo htmlspecialchars(trim(($cand['city'] ?: '').(($cand['state'] ?? '') ? ', '.$cand['state'] : ''))); ?></td>
-                                <td style="padding:12px; text-align:center;">
-                                    <button type="submit" 
-                                            class="row-submit-btn" 
-                                            style="opacity:0.3; padding:6px 12px; background-color:#4CAF50; color:white; border:none; border-radius:4px; cursor:pointer; font-size:12px; transition:opacity 0.2s;"
-                                            onclick="document.getElementById('selectedBib').value='<?php echo htmlspecialchars($cand['bib']); ?>'; return true;">
-                                        Select
-                                    </button>
-                                </td>
                             </tr>
                         <?php } ?>
                         </tbody>
@@ -891,51 +884,16 @@ $age_groups = [
                 });
             }
             
-            // Add click handler to entire results screen to return to search
-            // Use a small delay to let onclick handlers execute first
-            document.body.addEventListener('click', function(e) {
-                const target = e.target;
-                
-                // Don't redirect if clicking on the candidate selection table or form
-                const candidateTable = target.closest('#candidateTable');
-                const candidateForm = target.closest('#candidateForm');
-                if (candidateTable || candidateForm) {
-                    // Check if clicking on a row with data-bib (should already be handled by row listener)
-                    const candidateRow = target.closest('tr[data-bib]');
-                    if (candidateRow) {
-                        // Row click handler should have stopped propagation, but just in case
-                        return;
-                    }
-                    // Allow onclick handlers to execute - don't intercept
-                    return;
-                }
-                
-                // Check if target or any parent has onclick handler (like selectBib, switchRace)
-                const elementWithOnclick = target.closest('[onclick]');
-                if (elementWithOnclick) {
-                    // Allow onclick handlers to execute - don't intercept
-                    return;
-                }
-                
-                // Check if it's an interactive element or within one
-                const isInteractive = target.tagName === 'BUTTON' || 
-                                     target.tagName === 'A' || 
-                                     target.tagName === 'INPUT' || 
-                                     target.tagName === 'TEXTAREA' ||
-                                     target.tagName === 'SELECT' ||
-                                     target.closest('button') ||
-                                     target.closest('a') ||
-                                     target.closest('input') ||
-                                     target.closest('textarea') ||
-                                     target.closest('select') ||
-                                     target.closest('.modal');
-                
-                // If not interactive and no onclick, redirect to search
-                if (!isInteractive) {
+            // Add click handler to runner name only to return to search
+            const runnerNames = document.querySelectorAll('.result-name');
+            runnerNames.forEach(function(runnerName) {
+                runnerName.style.cursor = 'pointer';
+                runnerName.title = 'Click to return to search';
+                runnerName.addEventListener('click', function(e) {
                     e.preventDefault();
                     e.stopPropagation();
                     window.location.href = getSearchRedirectUrl();
-                }
+                });
             });
         });
     </script>
