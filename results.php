@@ -15,18 +15,19 @@ if(isset($_SESSION['rsu_access_token']) && $_SESSION['rsu_access_token'] != '' &
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $race_id = isset($_POST['race_id']) ? $_POST['race_id'] : (isset($_SESSION['race_id']) ? $_SESSION['race_id'] : null);
     $timeout = isset($_POST['timeout']) ? $_POST['timeout'] : (isset($_SESSION['timeout']) ? $_SESSION['timeout'] : '20');
+    $search_type = isset($_POST['search_type']) ? $_POST['search_type'] : 'bib';
     $bib_num = isset($_POST['bib_num']) && $_POST['bib_num'] !== '' ? $_POST['bib_num'] : null;
     $runner_name = isset($_POST['runner_name']) && $_POST['runner_name'] !== '' ? $_POST['runner_name'] : '';
-    // If a runner name is provided, ensure bib_num is null to avoid mixed query params
-    if (isset($runner_name) && $runner_name !== '') {
+    // Store search type and values in session
+    $_SESSION['search_type'] = $search_type;
+    if ($search_type === 'name' && $runner_name !== '') {
         $bib_num = null;
         $_SESSION['runner_name'] = $runner_name;
         unset($_SESSION['bib_num']);
-    } else {
-        if (isset($bib_num) && $bib_num !== null && $bib_num !== '') {
-            $_SESSION['bib_num'] = $bib_num;
-            unset($_SESSION['runner_name']);
-        }
+    } else if ($search_type === 'bib' && $bib_num !== null && $bib_num !== '') {
+        $runner_name = '';
+        $_SESSION['bib_num'] = $bib_num;
+        unset($_SESSION['runner_name']);
     }
     $label_color = isset($_POST['label_color']) ? $_POST['label_color'] : '#90D5FF';
     $data_color = isset($_POST['data_color']) ? $_POST['data_color'] : '#d1842a';
@@ -399,7 +400,16 @@ $age_groups = [
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta http-equiv="refresh" content="<?php echo $timeout; ?>;URL='bibsearch.php?race_id=<?php echo $race_id . '&timeout=' . $timeout . (isset($runner_name) && $runner_name !== '' ? '&search_type=name&runner_name=' . urlencode($runner_name) : '&search_type=bib&bib_num=' . urlencode($bib_num ?? '')); ?>'">
+    <meta http-equiv="refresh" content="<?php echo $timeout; ?>;URL='bibsearch.php?race_id=<?php 
+        $session_search_type = isset($_SESSION['search_type']) ? $_SESSION['search_type'] : 'bib';
+        $session_runner_name = isset($_SESSION['runner_name']) && $_SESSION['runner_name'] !== '' ? $_SESSION['runner_name'] : '';
+        $session_bib_num = isset($_SESSION['bib_num']) && $_SESSION['bib_num'] !== '' ? $_SESSION['bib_num'] : '';
+        if ($session_search_type === 'name' && $session_runner_name !== '') {
+            echo $race_id . '&timeout=' . $timeout . '&search_type=name&runner_name=' . urlencode($session_runner_name);
+        } else {
+            echo $race_id . '&timeout=' . $timeout . '&search_type=bib&bib_num=' . urlencode($session_bib_num);
+        }
+    ?>'">
     <title>Race Results - Bay City Timing & Events</title>
     <link rel="stylesheet" href="assets/bootstrap/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Aleo&amp;display=swap">
@@ -826,7 +836,17 @@ $age_groups = [
          * Hides the 'No Results Found' modal pop-up
          */
         function hideModal() {
-            window.location.href = "bibsearch.php?race_id=<?php echo $race_id . '&timeout=' . $timeout . (isset($runner_name) && $runner_name !== '' ? '&search_type=name&runner_name=' . urlencode($runner_name) : '&search_type=bib&bib_num=' . urlencode($bib_num ?? '')); ?>";
+            <?php
+            $session_search_type_js = isset($_SESSION['search_type']) ? $_SESSION['search_type'] : 'bib';
+            $session_runner_name_js = isset($_SESSION['runner_name']) && $_SESSION['runner_name'] !== '' ? $_SESSION['runner_name'] : '';
+            $session_bib_num_js = isset($_SESSION['bib_num']) && $_SESSION['bib_num'] !== '' ? $_SESSION['bib_num'] : '';
+            if ($session_search_type_js === 'name' && $session_runner_name_js !== '') {
+                $redirect_url = $race_id . '&timeout=' . $timeout . '&search_type=name&runner_name=' . urlencode($session_runner_name_js);
+            } else {
+                $redirect_url = $race_id . '&timeout=' . $timeout . '&search_type=bib&bib_num=' . urlencode($session_bib_num_js);
+            }
+            ?>
+            window.location.href = "bibsearch.php?race_id=<?php echo $redirect_url; ?>";
         }
         
         // Hide the modal when the user clicks the dark background
