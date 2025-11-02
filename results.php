@@ -320,7 +320,7 @@ if ($searchingByName) {
                             $hoverColor = '#e8f4f8';
                         ?>
                             <tr style="cursor:pointer; background-color:<?php echo $rowColor; ?>; border-bottom:1px solid #eee;" 
-                                onclick="selectBib('<?php echo htmlspecialchars($cand['bib']); ?>')"
+                                data-bib="<?php echo htmlspecialchars($cand['bib']); ?>"
                                 onmouseover="this.style.backgroundColor='<?php echo $hoverColor; ?>'"
                                 onmouseout="this.style.backgroundColor='<?php echo $rowColor; ?>'">
                                 <td style="padding:12px;"><?php echo htmlspecialchars(trim($cand['first_name'].' '.$cand['last_name'])); ?></td>
@@ -351,6 +351,21 @@ if ($searchingByName) {
                         inp.value = b;
                         f.submit();
                     }
+                    
+                    // Add click listeners to table rows using data-bib attribute
+                    document.addEventListener('DOMContentLoaded', function() {
+                        var candidateTable = document.getElementById('candidateTable');
+                        if (candidateTable) {
+                            var rows = candidateTable.querySelectorAll('tbody tr[data-bib]');
+                            rows.forEach(function(row) {
+                                row.addEventListener('click', function(e) {
+                                    e.stopPropagation(); // Prevent bubbling to body handler
+                                    var bib = this.getAttribute('data-bib');
+                                    selectBib(bib);
+                                });
+                            });
+                        }
+                    });
                 </script>
             </div>
         </body>
@@ -892,18 +907,29 @@ $age_groups = [
             }
             
             // Add click handler to entire results screen to return to search
+            // Use a small delay to let onclick handlers execute first
             document.body.addEventListener('click', function(e) {
                 const target = e.target;
                 
-                // Don't redirect if clicking on the candidate selection table
-                if (target.closest('#candidateTable') || target.closest('#candidateForm')) {
-                    return; // Let onclick handler execute
+                // Don't redirect if clicking on the candidate selection table or form
+                const candidateTable = target.closest('#candidateTable');
+                const candidateForm = target.closest('#candidateForm');
+                if (candidateTable || candidateForm) {
+                    // Check if clicking on a row with data-bib (should already be handled by row listener)
+                    const candidateRow = target.closest('tr[data-bib]');
+                    if (candidateRow) {
+                        // Row click handler should have stopped propagation, but just in case
+                        return;
+                    }
+                    // Allow onclick handlers to execute - don't intercept
+                    return;
                 }
                 
                 // Check if target or any parent has onclick handler (like selectBib, switchRace)
                 const elementWithOnclick = target.closest('[onclick]');
                 if (elementWithOnclick) {
-                    return; // Let onclick handler execute
+                    // Allow onclick handlers to execute - don't intercept
+                    return;
                 }
                 
                 // Check if it's an interactive element or within one
@@ -922,6 +948,7 @@ $age_groups = [
                 // If not interactive and no onclick, redirect to search
                 if (!isInteractive) {
                     e.preventDefault();
+                    e.stopPropagation();
                     window.location.href = getSearchRedirectUrl();
                 }
             });
