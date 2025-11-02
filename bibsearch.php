@@ -116,34 +116,41 @@ if ($race_id) {
             background-color: #f4f7f6;
             margin: 0;
             padding: 0;
+            overflow-x: hidden;
         }
         
         .form-container {
             width: 100%;
             max-width: 550px;
-            margin: 50px auto;
-            padding: 40px;
+            max-height: 100vh;
+            margin: 0 auto;
+            padding: 15px 20px;
             background-color: #ffffff;
             border: 1px solid #e0e0e0;
             border-radius: 12px;
             box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
         }
         
         .stylish-form {
             display: flex;
             flex-direction: column;
-            gap: 25px;
+            gap: 12px;
+            flex: 1;
+            min-height: 0;
         }
         
         .logo {
             text-align: center;
-            margin-bottom: 30px;
+            margin-bottom: 10px;
         }
         
         .logo img {
             max-width: 100%;
             height: auto;
-            max-height: 120px;
+            max-height: 80px;
         }
         
         .stylish-form label {
@@ -156,8 +163,8 @@ if ($race_id) {
         
         .stylish-form input[type="text"], .stylish-form select {
             width: 100%;
-            padding: 14px;
-            font-size: 1.1em;
+            padding: 10px;
+            font-size: 1em;
             border: 2px solid #ccc;
             border-radius: 8px;
             background-color: #f9f9f9;
@@ -174,8 +181,8 @@ if ($race_id) {
         .stylish-form input[type="submit"] {
             background-color: #ff8c00;
             color: white;
-            padding: 18px 30px;
-            font-size: 1.2em;
+            padding: 12px 25px;
+            font-size: 1em;
             font-weight: bold;
             border: none;
             border-radius: 8px;
@@ -183,6 +190,7 @@ if ($race_id) {
             text-transform: uppercase;
             letter-spacing: 1px;
             transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+            margin-top: 8px;
         }
         
         .stylish-form input[type="submit"]:hover {
@@ -194,18 +202,18 @@ if ($race_id) {
         .keypad {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 15px;
-            margin-top: 25px;
+            gap: 8px;
+            margin-top: 10px;
         }
         
         .keypad button {
             background-color: #f0f0f0;
             color: #444;
             border: 1px solid #ccc;
-            border-radius: 8px;
-            font-size: 1.8em;
+            border-radius: 6px;
+            font-size: 1.3em;
             font-weight: bold;
-            padding: 20px 0;
+            padding: 10px 0;
             cursor: pointer;
             transition: background-color 0.2s, transform 0.1s;
         }
@@ -237,23 +245,23 @@ if ($race_id) {
         }
         
         .search-type-container {
-            margin-bottom: 20px;
+            margin-bottom: 8px;
         }
         
         .search-input-group {
-            margin-bottom: 20px;
+            margin-bottom: 8px;
         }
         
         /* Race logo container - centered at top */
         .race-logo-container {
             text-align: center;
-            margin: 20px 0 30px 0;
+            margin: 8px 0 12px 0;
         }
         
         /* Race logo responsive styling */
         .race-logo {
-            max-width: 300px;
-            max-height: 150px;
+            max-width: 250px;
+            max-height: 80px;
             width: auto;
             height: auto;
             border-radius: 8px;
@@ -267,14 +275,14 @@ if ($race_id) {
         /* BCT logo container - at bottom */
         .bct-logo-container {
             text-align: center;
-            margin-top: 30px;
-            padding-top: 20px;
+            margin-top: 10px;
+            padding-top: 10px;
             border-top: 1px solid #e0e0e0;
         }
         
         .bct-logo {
-            max-width: 200px;
-            max-height: 80px;
+            max-width: 150px;
+            max-height: 60px;
             width: auto;
             height: auto;
             opacity: 0.8;
@@ -289,146 +297,15 @@ if ($race_id) {
         @media (min-width: 1200px) {
             .form-container {
                 max-width: 600px;
-                margin: 80px auto;
-                padding: 50px;
-            }
-            .logo img {
-                max-height: 140px;
-            }
-            .race-logo {
-                max-width: 350px;
-                max-height: 175px;
-            }
-            .bct-logo {
-                max-width: 250px;
-                max-height: 100px;
-            }
-            .stylish-form label {
-                font-size: 1.2em;
-            }
-            .stylish-form input[type="text"], .stylish-form select {
-                padding: 16px;
-                font-size: 1.2em;
-            }
-            .stylish-form input[type="submit"] {
-                padding: 20px 35px;
-                font-size: 1.3em;
-            }
-            .keypad {
-                gap: 20px;
-                margin-top: 30px;
-            }
-            .keypad button {
-                font-size: 2em;
-                padding: 25px 0;
-            }
-        }
-        
-        @media (min-width: 768px) and (max-width: 1199px) {
-            .form-container {
-                max-width: 500px;
-                margin: 40px auto;
-                padding: 35px;
-            }
-            .logo img {
-                max-height: 110px;
-            }
-            .race-logo {
-                max-width: 300px;
-                max-height: 150px;
-            }
-            .bct-logo {
-                max-width: 200px;
-                max-height: 80px;
-            }
-            .stylish-form label {
-                font-size: 1.1em;
-            }
-            .stylish-form input[type="text"], .stylish-form select {
-                padding: 14px;
-                font-size: 1.1em;
-            }
-            .stylish-form input[type="submit"] {
-                padding: 18px 30px;
-                font-size: 1.2em;
-            }
-            .keypad {
-                gap: 15px;
-                margin-top: 25px;
-            }
-            .keypad button {
-                font-size: 1.8em;
-                padding: 20px 0;
-            }
-        }
-        
-        @media (max-width: 767px) {
-            body {
-                padding: 10px;
-            }
-            .form-container {
-                max-width: 100%;
-                margin: 20px auto;
-                padding: 25px 20px;
-                border-radius: 8px;
-            }
-            .logo {
-                margin-bottom: 25px;
+                max-height: 100vh;
+                margin: 0 auto;
+                padding: 15px 25px;
             }
             .logo img {
                 max-height: 80px;
             }
             .race-logo {
                 max-width: 250px;
-                max-height: 125px;
-            }
-            .bct-logo {
-                max-width: 180px;
-                max-height: 70px;
-            }
-            .stylish-form label {
-                font-size: 1em;
-                margin-bottom: 8px;
-            }
-            .stylish-form input[type="text"], .stylish-form select {
-                padding: 12px;
-                font-size: 1em;
-                border-radius: 6px;
-            }
-            .stylish-form input[type="submit"] {
-                padding: 16px 25px;
-                font-size: 1.1em;
-                border-radius: 6px;
-                letter-spacing: 0.5px;
-            }
-            .keypad {
-                gap: 12px;
-                margin-top: 20px;
-            }
-            .keypad button {
-                font-size: 1.5em;
-                padding: 15px 0;
-                border-radius: 6px;
-            }
-        }
-        
-        @media (max-width: 480px) {
-            body {
-                padding: 5px;
-            }
-            .form-container {
-                margin: 10px auto;
-                padding: 20px 15px;
-                border-radius: 6px;
-            }
-            .logo {
-                margin-bottom: 20px;
-            }
-            .logo img {
-                max-height: 60px;
-            }
-            .race-logo {
-                max-width: 200px;
                 max-height: 100px;
             }
             .bct-logo {
@@ -436,55 +313,191 @@ if ($race_id) {
                 max-height: 60px;
             }
             .stylish-form label {
-                font-size: 0.95em;
+                font-size: 1em;
+            }
+            .stylish-form input[type="text"], .stylish-form select {
+                padding: 10px;
+                font-size: 1em;
+            }
+            .stylish-form input[type="submit"] {
+                padding: 12px 25px;
+                font-size: 1em;
+            }
+            .keypad {
+                gap: 8px;
+                margin-top: 10px;
+            }
+            .keypad button {
+                font-size: 1.3em;
+                padding: 10px 0;
+            }
+        }
+        
+        @media (min-width: 768px) and (max-width: 1199px) {
+            .form-container {
+                max-width: 500px;
+                max-height: 100vh;
+                margin: 0 auto;
+                padding: 15px 20px;
+            }
+            .logo img {
+                max-height: 70px;
+            }
+            .race-logo {
+                max-width: 220px;
+                max-height: 80px;
+            }
+            .bct-logo {
+                max-width: 140px;
+                max-height: 55px;
+            }
+            .stylish-form label {
+                font-size: 1em;
+            }
+            .stylish-form input[type="text"], .stylish-form select {
+                padding: 10px;
+                font-size: 1em;
+            }
+            .stylish-form input[type="submit"] {
+                padding: 12px 25px;
+                font-size: 1em;
+            }
+            .keypad {
+                gap: 8px;
+                margin-top: 10px;
+            }
+            .keypad button {
+                font-size: 1.3em;
+                padding: 10px 0;
+            }
+        }
+        
+        @media (max-width: 767px) {
+            body {
+                padding: 0;
+            }
+            .form-container {
+                max-width: 100%;
+                max-height: 100vh;
+                margin: 0 auto;
+                padding: 12px 15px;
+                border-radius: 8px;
+            }
+            .logo {
+                margin-bottom: 8px;
+            }
+            .logo img {
+                max-height: 60px;
+            }
+            .race-logo {
+                max-width: 200px;
+                max-height: 70px;
+            }
+            .bct-logo {
+                max-width: 120px;
+                max-height: 50px;
+            }
+            .stylish-form label {
+                font-size: 0.9em;
                 margin-bottom: 6px;
             }
             .stylish-form input[type="text"], .stylish-form select {
                 padding: 10px;
                 font-size: 0.95em;
+                border-radius: 6px;
             }
             .stylish-form input[type="submit"] {
-                padding: 14px 20px;
-                font-size: 1em;
-                letter-spacing: 0.3px;
+                padding: 12px 20px;
+                font-size: 0.95em;
+                border-radius: 6px;
+                letter-spacing: 0.5px;
             }
             .keypad {
-                gap: 10px;
-                margin-top: 15px;
+                gap: 6px;
+                margin-top: 8px;
             }
             .keypad button {
-                font-size: 1.3em;
-                padding: 12px 0;
+                font-size: 1.2em;
+                padding: 8px 0;
                 border-radius: 5px;
             }
         }
         
-        @media (max-width: 767px) and (orientation: landscape) {
+        @media (max-width: 480px) {
+            body {
+                padding: 0;
+            }
             .form-container {
-                margin: 10px auto;
-                padding: 20px;
+                max-height: 100vh;
+                margin: 0 auto;
+                padding: 10px 12px;
+                border-radius: 6px;
             }
             .logo {
-                margin-bottom: 15px;
+                margin-bottom: 6px;
             }
             .logo img {
                 max-height: 50px;
             }
             .race-logo {
                 max-width: 180px;
-                max-height: 90px;
+                max-height: 60px;
             }
             .bct-logo {
-                max-width: 120px;
-                max-height: 50px;
+                max-width: 100px;
+                max-height: 45px;
+            }
+            .stylish-form label {
+                font-size: 0.85em;
+                margin-bottom: 4px;
+            }
+            .stylish-form input[type="text"], .stylish-form select {
+                padding: 8px;
+                font-size: 0.9em;
+            }
+            .stylish-form input[type="submit"] {
+                padding: 10px 18px;
+                font-size: 0.9em;
+                letter-spacing: 0.3px;
             }
             .keypad {
-                gap: 8px;
-                margin-top: 15px;
+                gap: 5px;
+                margin-top: 6px;
             }
             .keypad button {
-                font-size: 1.2em;
-                padding: 10px 0;
+                font-size: 1.1em;
+                padding: 8px 0;
+                border-radius: 4px;
+            }
+        }
+        
+        @media (max-width: 767px) and (orientation: landscape) {
+            .form-container {
+                max-height: 100vh;
+                margin: 0 auto;
+                padding: 8px 12px;
+            }
+            .logo {
+                margin-bottom: 4px;
+            }
+            .logo img {
+                max-height: 40px;
+            }
+            .race-logo {
+                max-width: 150px;
+                max-height: 50px;
+            }
+            .bct-logo {
+                max-width: 100px;
+                max-height: 40px;
+            }
+            .keypad {
+                gap: 6px;
+                margin-top: 6px;
+            }
+            .keypad button {
+                font-size: 1.1em;
+                padding: 8px 0;
             }
         }
     </style>
@@ -492,19 +505,19 @@ if ($race_id) {
 <body<?php if (!empty($background_color)) { echo ' style="background-color: ' . htmlspecialchars($background_color) . '"'; } ?>>
     <div class="form-container">
         <?php if (!empty($logo_url) || !empty($sponsor_logo)): ?>
-        <div class="race-logo-container" style="display:flex; gap:16px; align-items:center; justify-content:center;">
+        <div class="race-logo-container" style="display:flex; gap:8px; align-items:center; justify-content:center; margin:4px 0;">
             <?php if (!empty($logo_url)) { ?>
                 <img src="<?php echo htmlspecialchars($logo_url); ?>" alt="Race Logo" class="race-logo">
             <?php } ?>
             <?php if (!empty($sponsor_logo)) { ?>
-                <img src="<?php echo htmlspecialchars($sponsor_logo); ?>" alt="Sponsor Logo" class="race-logo" style="max-height:100px;">
+                <img src="<?php echo htmlspecialchars($sponsor_logo); ?>" alt="Sponsor Logo" class="race-logo" style="max-height:80px;">
             <?php } ?>
         </div>
         <?php endif; ?>
         <form class="stylish-form" action="results.php" method="POST">
             <!-- Search Type Selection (Radio Buttons) -->
             <div class="search-type-container">
-                <div style="display:flex; gap:16px; align-items:center; margin-top:8px;">
+                <div style="display:flex; gap:16px; align-items:center; margin-top:4px;">
                     <label>
                         <input type="radio" name="search_type" value="bib" <?php echo $search_type === 'bib' ? 'checked' : ''; ?>>
                         Bib Number
