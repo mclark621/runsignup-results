@@ -502,25 +502,13 @@ if ($race_id) {
         </div>
         <?php endif; ?>
         <form class="stylish-form" action="results.php" method="POST">
-            <!-- Search Type Selection (Radio Buttons) -->
-            <div class="search-type-container">
-                <span>Search By:</span>
-                <div style="display:flex; gap:16px; align-items:center; margin-top:8px;">
-                    <label>
-                        <input type="radio" name="search_type" value="bib" <?php echo $search_type === 'bib' ? 'checked' : ''; ?>>
-                        Bib Number
-                    </label>
-                    <label>
-                        <input type="radio" name="search_type" value="name" <?php echo $search_type === 'name' ? 'checked' : ''; ?>>
-                        Runner Name
-                    </label>
-                </div>
-            </div>
+            <!-- Search Type Selection (Hidden Radio Buttons) -->
+            <input type="radio" name="search_type" value="bib" <?php echo $search_type === 'bib' ? 'checked' : ''; ?> style="display:none;" id="search_type_bib">
+            <input type="radio" name="search_type" value="name" <?php echo $search_type === 'name' ? 'checked' : ''; ?> style="display:none;" id="search_type_name">
 
             <!-- Bib Number Input -->
             <div id="bib-search" class="search-input-group">
-                <label for="bib_num">Bib Number:</label>
-                <input type="text" name="bib_num" id="bib_num" placeholder="Enter a bib number" value="<?php echo htmlspecialchars($bib); ?>" autofocus inputmode="numeric" pattern="[0-9]*" autocomplete="off">
+                <input type="text" name="bib_num" id="bib_num" placeholder="Type bib number" value="<?php echo htmlspecialchars($bib); ?>" autofocus inputmode="numeric" pattern="[0-9]*" autocomplete="off">
                 
                 <div class="keypad">
                     <button type="button" onclick="addDigit(7)">7</button>
@@ -540,8 +528,7 @@ if ($race_id) {
 
             <!-- Name Search Input -->
             <div id="name-search" class="search-input-group" style="display: none;">
-                <label for="runner_name">Runner Name:</label>
-                <input type="text" name="runner_name" id="runner_name" placeholder="Enter last name" value="<?php echo htmlspecialchars($name); ?>">
+                <input type="text" name="runner_name" id="runner_name" placeholder="Type name" value="<?php echo htmlspecialchars($name); ?>">
             </div>
 
             <input type="hidden" name="race_id" value="<?php echo htmlspecialchars($race_id); ?>">
@@ -578,12 +565,12 @@ if ($race_id) {
             if (searchType === 'bib') {
                 bibSearchGroup.style.display = 'block';
                 nameSearchGroup.style.display = 'none';
-                bibInput.placeholder = 'Enter a bib number';
+                bibInput.placeholder = 'Type bib number';
                 bibInput.focus();
             } else {
                 bibSearchGroup.style.display = 'none';
                 nameSearchGroup.style.display = 'block';
-                nameInput.placeholder = 'Enter last name';
+                nameInput.placeholder = 'Type name';
                 nameInput.focus();
             }
         }
