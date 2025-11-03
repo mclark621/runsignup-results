@@ -2,6 +2,13 @@
 require('ApiConfig.php');
 session_start();
 
+// If race_id is provided, immediately redirect to bibsearch.php without OAuth
+if (isset($_GET['race_id']) && !empty($_GET['race_id'])) {
+    $race_id = $_GET['race_id'];
+    header('Location: bibsearch.php?race_id=' . urlencode($race_id));
+    exit;
+}
+
 // --- Placeholder for Token Storage ---
 // In a production app, you would verify if a valid, non-expired token exists here.
 $access_token = isset($_SESSION['rsu_access_token']) ? $_SESSION['rsu_access_token'] : null;
