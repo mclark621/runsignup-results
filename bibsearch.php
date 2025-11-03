@@ -142,6 +142,51 @@ if ($race_id) {
             min-height: 0;
         }
         
+        /* Stylish notification popup */
+        .notification-popup {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-100px);
+            background: linear-gradient(135deg, #ff8c00 0%, #ff6b00 100%);
+            color: white;
+            padding: 18px 28px;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+            z-index: 10000;
+            opacity: 0;
+            transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            max-width: 90%;
+            font-weight: 600;
+            font-size: 16px;
+        }
+        
+        .notification-popup.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+        
+        .notification-popup .icon {
+            font-size: 24px;
+            flex-shrink: 0;
+        }
+        
+        .notification-popup .message {
+            flex: 1;
+        }
+        
+        @media (max-width: 767px) {
+            .notification-popup {
+                top: 10px;
+                padding: 14px 20px;
+                font-size: 14px;
+                max-width: 95%;
+            }
+        }
+        
         .logo {
             text-align: center;
             margin-bottom: 10px;
@@ -644,6 +689,37 @@ if ($race_id) {
             });
         }
 
+        // Show stylish notification popup
+        function showNotification(message) {
+            // Remove any existing notification
+            const existing = document.querySelector('.notification-popup');
+            if (existing) {
+                existing.remove();
+            }
+            
+            // Create notification element
+            const notification = document.createElement('div');
+            notification.className = 'notification-popup';
+            notification.innerHTML = '<span class="icon">⚠️</span><span class="message">' + message + '</span>';
+            
+            document.body.appendChild(notification);
+            
+            // Trigger animation
+            setTimeout(function() {
+                notification.classList.add('show');
+            }, 10);
+            
+            // Auto-hide after 3 seconds
+            setTimeout(function() {
+                notification.classList.remove('show');
+                setTimeout(function() {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 400);
+            }, 3000);
+        }
+
         // Form validation - prevent submit if search input is blank
         const form = document.querySelector('.stylish-form');
         if (form) {
@@ -655,7 +731,7 @@ if ($race_id) {
                     const bibValue = bibInput.value.trim();
                     if (bibValue === '') {
                         e.preventDefault();
-                        alert('Please enter a bib number');
+                        showNotification('Please enter a bib number');
                         bibInput.focus();
                         return false;
                     }
@@ -664,7 +740,7 @@ if ($race_id) {
                     const nameValue = nameInput.value.trim();
                     if (nameValue === '') {
                         e.preventDefault();
-                        alert('Please enter a runner name');
+                        showNotification('Please enter a runner name');
                         nameInput.focus();
                         return false;
                     }
