@@ -603,7 +603,7 @@ $age_groups = [
             justify-content: center;
             flex-wrap: wrap;
         }
-        .btn-primary-like, .btn-secondary-like {
+        .btn-primary-like, .btn-secondary-like, .btn-fb-like, .btn-link-like {
             border: none;
             border-radius: 8px;
             padding: 12px 16px;
