@@ -620,6 +620,14 @@ $age_groups = [
         .btn-fb-like:hover { background:#155fbe; }
         .btn-link-like { background:#6c757d; color:#fff; }
         .btn-link-like:hover { background:#5a6268; }
+        .share-buttons-container {
+            display: none;
+        }
+        @media (max-width: 767px) {
+            .share-buttons-container {
+                display: flex;
+            }
+        }
 
         /* Body styling */
         .results-body {
@@ -912,8 +920,8 @@ $age_groups = [
             </div>
         </div>
         
-        <!-- Share actions (below results, above any bottom elements) -->
-        <div class="row text-center" style="margin-top: 24px; margin-bottom: 16px;">
+        <!-- Share actions (below results, above any bottom elements) - Mobile only -->
+        <div class="row text-center share-buttons-container" style="margin-top: 24px; margin-bottom: 16px;">
             <div class="col-md-12" style="display:flex; gap:12px; align-items:center; justify-content:center; flex-wrap:wrap;">
                 <button type="button" class="btn-primary-like" onclick="shareNative()">Share</button>
                 <button type="button" class="btn-fb-like" onclick="shareFacebook()">Facebook</button>
