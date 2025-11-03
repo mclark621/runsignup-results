@@ -615,6 +615,10 @@ $age_groups = [
         .btn-primary-like:hover { background: #e67e00; }
         .btn-secondary-like { background: #f0f0f0; color: #333; }
         .btn-secondary-like:hover { background: #e6e6e6; }
+        .btn-fb-like { background:#1877F2; color:#fff; }
+        .btn-fb-like:hover { background:#155fbe; }
+        .btn-link-like { background:#6c757d; color:#fff; }
+        .btn-link-like:hover { background:#5a6268; }
 
         /* Body styling */
         .results-body {
@@ -795,13 +799,7 @@ $age_groups = [
                 <span class="result-name"><?php echo $first_name[$race_name] . " " . $last_name[$race_name] ?></span>
             </div>
         </div>
-        <div class="row text-center" style="margin-top: 12px;">
-            <div class="col-md-12" style="display:flex; gap:10px; align-items:center; justify-content:center; flex-wrap:wrap;">
-                <button type="button" class="btn-secondary-like" onclick="shareNative()">Share</button>
-                <button type="button" class="btn-secondary-like" onclick="shareFacebook()">Share on Facebook</button>
-                <button type="button" class="btn-secondary-like" onclick="copyShareLink()">Copy Link</button>
-            </div>
-        </div>
+        
         
         <div class="row text-center">
             <div class="col-md-12">
@@ -908,6 +906,15 @@ $age_groups = [
                         <span class="result-value"><?php echo $pace[$race_name] ?></span>
                     </div>
                 </div>
+            </div>
+        </div>
+        
+        <!-- Share actions (below results, above any bottom elements) -->
+        <div class="row text-center" style="margin-top: 24px; margin-bottom: 16px;">
+            <div class="col-md-12" style="display:flex; gap:12px; align-items:center; justify-content:center; flex-wrap:wrap;">
+                <button type="button" class="btn-primary-like" onclick="shareNative()">Share</button>
+                <button type="button" class="btn-fb-like" onclick="shareFacebook()">Facebook</button>
+                <button type="button" class="btn-link-like" onclick="copyShareLink()">Copy Link</button>
             </div>
         </div>
     </div>
