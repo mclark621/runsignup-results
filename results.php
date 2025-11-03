@@ -92,6 +92,39 @@ $race_display_name = isset($resp['race']['name']) ? $resp['race']['name'] : '';
 $sponsor_logo = '';
 $background_color = '';
 
+// Build canonical share URL and Open Graph values (best-effort)
+$scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+$host = isset($_SERVER['HTTP_HOST']) ? $_SERVER['HTTP_HOST'] : 'localhost';
+$basePath = rtrim(dirname($_SERVER['SCRIPT_NAME'] ?? '/results.php'), '/');
+$share_params = [ 'race_id' => $race_id ];
+if (!empty($bib_num)) {
+    $share_params['bib_num'] = (string)$bib_num;
+    $share_params['search_type'] = 'bib';
+} elseif (!empty($runner_name)) {
+    $share_params['runner_name'] = (string)$runner_name;
+    $share_params['search_type'] = 'name';
+}
+$share_query = http_build_query($share_params);
+$share_url = $scheme . '://' . $host . $basePath . '/results.php' . ($share_query ? ('?' . $share_query) : '');
+
+$primary_name = '';
+if (!empty($race_names)) {
+    $firstKey = array_key_first($race_names);
+    $primary_name = trim(($first_name[$firstKey] ?? '') . ' ' . ($last_name[$firstKey] ?? ''));
+}
+$og_title = trim(($primary_name !== '' ? ($primary_name . ' • ') : '') . ($race_display_name ?: 'Race Results'));
+$og_desc = '';
+if (!empty($race_names)) {
+    $firstKey = array_key_first($race_names);
+    $og_desc = 'Finish Time: ' . (($chip_time[$firstKey] ?? '') ?: '-') . ' • Bib: ' . (($bib_num ?? '') ?: '-') . ' • ' . ($race_display_name ?: '');
+} else {
+    $og_desc = 'View race results.';
+}
+$og_image = '';
+if (!empty($sponsor_logo)) { $og_image = $sponsor_logo; }
+elseif (!empty($logo_url)) { $og_image = $logo_url; }
+else { $og_image = $scheme . '://' . $host . $basePath . '/assets/img/bctlogo.png'; }
+
 // Load stored colors if not supplied (read-only) (DB is stored in the same directory as the script)Once Again
 try {
     $db = new SQLite3(__DIR__ . '/selfie.sqlite');
@@ -481,6 +514,16 @@ $age_groups = [
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="canonical" href="<?php echo htmlspecialchars($share_url); ?>">
+    <meta property="og:title" content="<?php echo htmlspecialchars($og_title); ?>">
+    <meta property="og:description" content="<?php echo htmlspecialchars($og_desc); ?>">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="<?php echo htmlspecialchars($share_url); ?>">
+    <meta property="og:image" content="<?php echo htmlspecialchars($og_image); ?>">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="<?php echo htmlspecialchars($og_title); ?>">
+    <meta name="twitter:description" content="<?php echo htmlspecialchars($og_desc); ?>">
+    <meta name="twitter:image" content="<?php echo htmlspecialchars($og_image); ?>">
     <meta http-equiv="refresh" content="<?php echo $timeout; ?>;URL='bibsearch.php?race_id=<?php 
         // Use current POST value if available, otherwise check session
         $current_search_type = isset($_POST['search_type']) ? $_POST['search_type'] : (isset($_SESSION['search_type']) ? $_SESSION['search_type'] : 'bib');
@@ -752,6 +795,13 @@ $age_groups = [
                 <span class="result-name"><?php echo $first_name[$race_name] . " " . $last_name[$race_name] ?></span>
             </div>
         </div>
+        <div class="row text-center" style="margin-top: 12px;">
+            <div class="col-md-12" style="display:flex; gap:10px; align-items:center; justify-content:center; flex-wrap:wrap;">
+                <button type="button" class="btn-secondary-like" onclick="shareNative()">Share</button>
+                <button type="button" class="btn-secondary-like" onclick="shareFacebook()">Share on Facebook</button>
+                <button type="button" class="btn-secondary-like" onclick="copyShareLink()">Copy Link</button>
+            </div>
+        </div>
         
         <div class="row text-center">
             <div class="col-md-12">
@@ -885,6 +935,9 @@ $age_groups = [
     <script src="assets/bootstrap/js/bootstrap.min.js"></script>
     <script>
         const elem = document.documentElement;
+        const SHARE_URL = <?php echo json_encode($share_url); ?>;
+        const SHARE_TITLE = <?php echo json_encode($og_title); ?>;
+        const SHARE_TEXT = <?php echo json_encode($og_desc); ?>;
         
         /**
          * Switch to a different race result
@@ -907,6 +960,39 @@ $age_groups = [
                 elem.webkitRequestFullscreen();
             } else if (elem.msRequestFullscreen) { /* IE11 */
                 elem.msRequestFullscreen();
+            }
+        }
+
+        // Sharing helpers
+        function shareFacebook() {
+            const u = encodeURIComponent(SHARE_URL);
+            const fb = `https://www.facebook.com/sharer/sharer.php?u=${u}`;
+            window.open(fb, '_blank', 'noopener,noreferrer,width=680,height=500');
+        }
+        function copyShareLink() {
+            try {
+                navigator.clipboard.writeText(SHARE_URL).then(() => {
+                    alert('Link copied to clipboard');
+                }).catch(() => {
+                    // Fallback
+                    const ta = document.createElement('textarea');
+                    ta.value = SHARE_URL;
+                    document.body.appendChild(ta);
+                    ta.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(ta);
+                    alert('Link copied to clipboard');
+                });
+            } catch (e) {
+                window.prompt('Copy this link:', SHARE_URL);
+            }
+        }
+        function shareNative() {
+            if (navigator.share) {
+                navigator.share({ title: SHARE_TITLE, text: SHARE_TEXT, url: SHARE_URL }).catch(() => {});
+            } else {
+                // Fallback to Facebook share if Web Share not supported
+                shareFacebook();
             }
         }
         
