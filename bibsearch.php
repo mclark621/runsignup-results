@@ -644,6 +644,37 @@ if ($race_id) {
             });
         }
 
+        // Form validation - prevent submit if search input is blank
+        const form = document.querySelector('.stylish-form');
+        if (form) {
+            form.addEventListener('submit', function(e) {
+                const searchType = getSelectedType();
+                let isValid = false;
+                
+                if (searchType === 'bib') {
+                    const bibValue = bibInput.value.trim();
+                    if (bibValue === '') {
+                        e.preventDefault();
+                        alert('Please enter a bib number');
+                        bibInput.focus();
+                        return false;
+                    }
+                    isValid = true;
+                } else if (searchType === 'name') {
+                    const nameValue = nameInput.value.trim();
+                    if (nameValue === '') {
+                        e.preventDefault();
+                        alert('Please enter a runner name');
+                        nameInput.focus();
+                        return false;
+                    }
+                    isValid = true;
+                }
+                
+                return isValid;
+            });
+        }
+
         // Initialize the form based on current search type
         document.addEventListener('DOMContentLoaded', function() {
             toggleSearchInputs();
