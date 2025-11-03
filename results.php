@@ -208,6 +208,7 @@ $division_place = [];
 $division_placement_id = [];
 $division_id = [];
 $gender_place = [];
+$gender = [];
 $results_headers = [];
 $race_names = [];
 
@@ -271,7 +272,7 @@ foreach ($resp['race']['events'] as $tmp) {
         $bib_num = $result_data['bib'];
         $chip_time[$race_name] = explode(".", $result_data['chip_time'])[0];
         $pace[$race_name] = $result_data['pace'];
-        $gender = $result_data['gender'] ?? '';
+        $gender[$race_name] = $result_data['gender'] ?? '';
         $place[$race_name] = $result_data['place'];
         $finishers[$race_name] = $result['individual_results_sets'][0]['num_finishers'];
         $division_finishers[$race_name] = $result['individual_results_sets'][0]['num_division_finishers'];
@@ -285,7 +286,7 @@ foreach ($resp['race']['events'] as $tmp) {
                 $division_placement_id[$race_name] = $dpi;
                 $division_id[$race_name] = $did;
             }
-            if ($gender && str_contains($results_headers[$race_name][$dpi], $gender) && 
+            if ($gender[$race_name] && str_contains($results_headers[$race_name][$dpi], $gender[$race_name]) && 
                 !str_contains($results_headers[$race_name][$dpi], 'Overall')) {
                 $gender_finishers[$race_name] += $division_finishers[$race_name][$did];
             }
@@ -843,6 +844,7 @@ $age_groups = [
             </div>
         </div>
         
+        <?php if (!empty($gender[$race_name])): ?>
         <div class="row">
             <div class="col-md-12 text-center" style="margin-top: 25px;">
                 <span class="result-label fw-bold">GENDER RANK</span>
@@ -857,17 +859,17 @@ $age_groups = [
                 </div>
             </div>
         </div>
+        <?php endif; ?>
         
+        <?php if (isset($division_placement_id[$race_name]) && isset($results_headers[$race_name][$division_placement_id[$race_name]])): ?>
         <div class="row">
             <div class="col-md-12 text-center" style="margin-top: 25px;">
                 <span class="result-label fw-bold">
                     <?php 
-                    if(isset($division_placement_id[$race_name]) && isset($results_headers[$race_name][$division_placement_id[$race_name]])) {              
-                        $agheader = array_key_exists($results_headers[$race_name][$division_placement_id[$race_name]], $age_groups)
-                            ? $age_groups[$results_headers[$race_name][$division_placement_id[$race_name]]] 
-                            : $results_headers[$race_name][$division_placement_id[$race_name]];
-                        echo $agheader;
-                    }
+                    $agheader = array_key_exists($results_headers[$race_name][$division_placement_id[$race_name]], $age_groups)
+                        ? $age_groups[$results_headers[$race_name][$division_placement_id[$race_name]]] 
+                        : $results_headers[$race_name][$division_placement_id[$race_name]];
+                    echo $agheader;
                     ?>
                 </span>
             </div>
@@ -893,6 +895,7 @@ $age_groups = [
                 </div>
             </div>
         </div>
+        <?php endif; ?>
         
         <div class="row">
             <div class="col-md-12 text-center" style="margin-top: 25px;">
