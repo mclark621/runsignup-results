@@ -624,11 +624,30 @@ if ($race_id) {
         const nameSearchGroup = document.getElementById('name-search');
         const bibInput = document.getElementById('bib_num');
         const nameInput = document.getElementById('runner_name');
+        const form = document.querySelector('.stylish-form');
 
         function getSelectedType() {
             let sel = 'bib';
             searchTypeRadios.forEach(r => { if (r.checked) sel = r.value; });
             return sel;
+        }
+
+        // Helper function to focus input and set cursor to end
+        function focusInputAtEnd(input) {
+            if (input) {
+                input.focus();
+                // Set cursor to end of text
+                const len = input.value.length;
+                if (input.setSelectionRange) {
+                    input.setSelectionRange(len, len);
+                } else if (input.createTextRange) {
+                    const range = input.createTextRange();
+                    range.collapse(true);
+                    range.moveEnd('character', len);
+                    range.moveStart('character', len);
+                    range.select();
+                }
+            }
         }
 
         function toggleSearchInputs() {
@@ -637,12 +656,12 @@ if ($race_id) {
                 bibSearchGroup.style.display = 'block';
                 nameSearchGroup.style.display = 'none';
                 bibInput.placeholder = 'Type bib number';
-                bibInput.focus();
+                focusInputAtEnd(bibInput);
             } else {
                 bibSearchGroup.style.display = 'none';
                 nameSearchGroup.style.display = 'block';
                 nameInput.placeholder = 'Type name';
-                nameInput.focus();
+                focusInputAtEnd(nameInput);
             }
         }
 
@@ -670,9 +689,33 @@ if ($race_id) {
             }
         }
 
+        // Function to submit form (triggers validation)
+        function submitForm() {
+            if (form) {
+                // Use requestSubmit() if available (triggers submit event and validation)
+                if (typeof form.requestSubmit === 'function') {
+                    form.requestSubmit();
+                } else {
+                    // Fallback: click the submit button to trigger validation
+                    const submitBtn = form.querySelector('input[type="submit"]');
+                    if (submitBtn) {
+                        submitBtn.click();
+                    } else {
+                        form.submit();
+                    }
+                }
+            }
+        }
+
         // Restrict bib input to digits only (typing, paste, programmatic)
         if (bibInput) {
             bibInput.addEventListener('keypress', function(e) {
+                // Allow Enter key (keyCode 13) to submit the form
+                if (e.keyCode === 13 || e.which === 13) {
+                    e.preventDefault();
+                    submitForm();
+                    return;
+                }
                 const ch = String.fromCharCode(e.which || e.keyCode);
                 if (!/[0-9]/.test(ch)) {
                     e.preventDefault();
@@ -686,6 +729,16 @@ if ($race_id) {
             });
             bibInput.addEventListener('input', function() {
                 this.value = this.value.replace(/\D+/g, '');
+            });
+        }
+        
+        // Handle Enter key for name input
+        if (nameInput) {
+            nameInput.addEventListener('keypress', function(e) {
+                if (e.keyCode === 13 || e.which === 13) {
+                    e.preventDefault();
+                    submitForm();
+                }
             });
         }
 
@@ -721,7 +774,6 @@ if ($race_id) {
         }
 
         // Form validation - prevent submit if search input is blank
-        const form = document.querySelector('.stylish-form');
         if (form) {
             form.addEventListener('submit', function(e) {
                 const searchType = getSelectedType();
