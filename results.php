@@ -781,7 +781,7 @@ $age_groups = [
         <div id="noResultsTitle" class="no-results-title">No Results Found</div>
         <p class="no-results-text">We couldn’t find results for bib <strong><?php echo htmlspecialchars($bib_num ?? ''); ?></strong> for this event. Please verify the bib number or try a different search.</p>
         <div class="modal-actions">
-            <button class="btn-primary-like" onclick="hideModal()">Back to Search</button>
+            <button id="backToSearchBtn" class="btn-primary-like" onclick="hideModal()">Back to Search</button>
             <button class="btn-secondary-like" onclick="window.location.href='bibsearch.php?race_id=<?php echo urlencode($race_id) . '&timeout=' . urlencode($timeout); ?>'">Change Bib/Name</button>
         </div>
     </div>
@@ -1058,6 +1058,27 @@ $age_groups = [
         document.addEventListener('DOMContentLoaded', function() {
             const modal = document.getElementById('noResultsModal');
             if (modal) {
+                // Focus the "Back to Search" button so user can press Enter
+                const backBtn = document.getElementById('backToSearchBtn');
+                if (backBtn) {
+                    // Use setTimeout to ensure the modal is fully rendered
+                    setTimeout(function() {
+                        backBtn.focus();
+                    }, 100);
+                }
+                
+                // Set 20 second timeout to automatically return to search
+                setTimeout(function() {
+                    hideModal();
+                }, 20000);
+                
+                // Handle Escape key to close modal
+                document.addEventListener('keydown', function(e) {
+                    if (e.key === 'Escape' && modal) {
+                        hideModal();
+                    }
+                });
+                
                 modal.addEventListener('click', function(e) {
                     if (e.target.id === 'noResultsModal') {
                         hideModal();
